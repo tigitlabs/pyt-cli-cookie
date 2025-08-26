@@ -6,8 +6,12 @@ from invoke.collection import Collection
 from invoke.context import Context
 from invoke.tasks import task
 
+from tasks import ci
+
 dev_branch = "dev"
 main_branch = "main"
+branch_prefix_feature = "feat/"
+branch_prefix_bugfix = "fix/"
 
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
 
@@ -30,6 +34,20 @@ def assert_no_uncommitted(c) -> None:
         print("❌ Warning: You have uncommitted changes. Aborting.")
         sys.exit(1)
     print("✅ No uncommitted changes found.")
+
+
+def git_merge(c: Context, head: str, message: str = "") -> None:
+    """Merge the specified branches.
+
+    Args:
+        c (Context): The Invoke context.
+        head (str): The head branch to merge into.
+        message (str): The commit message for the merge. If not provided, a fast-forward merge will be performed.
+    """
+    if message != "":
+        c.run(f"git merge --no-ff {head} -m '{message}'")
+    else:
+        c.run(f"git merge --ff {head}")
 
 
 def assert_merge_test(c: Context, base: str, head: str) -> None:
@@ -139,6 +157,74 @@ def commit_tool(c: Context, message: str):
     c.run("git commit -m 'tool: add new feature'")
 
 
+def get_feature_branch_name(feature_name: str) -> str:
+    """Get the feature branch name based on the feature name."""
+    return f"{branch_prefix_feature}{feature_name}"
+
+
+def get_pull_request_branch(feature_branch: str) -> str:
+    """Get the pull request branch name based on the feature branch."""
+    return f"pr/{feature_branch}"
+
+
+def is_feature_branch(branch_name: str) -> bool:
+    """Check if the given branch name is a feature branch."""
+    return branch_name.startswith(branch_prefix_feature)
+
+
+def switch_from_dev(c: Context, branch_name: str):
+    """Switch from the development branch to a feature branch.
+
+    Args:
+        c: The context object.
+        branch_name: The name of the feature branch.
+    """
+    assert_no_uncommitted(c)
+    git_switch_branch(c, dev_branch)
+    c.run(f"git pull origin {dev_branch}")
+    git_switch_branch(c, branch_name)
+
+
+@task
+def flow_feature_start(c: Context, feature_name: str):
+    """Start a new feature branch.
+
+    Args:
+        c: The context object.
+        feature_name: The name for the new feature branch.
+    """
+    switch_from_dev(c, branch_name=get_feature_branch_name(feature_name))
+
+
+@task
+def flow_feature_finish(c: Context):
+    """Finish a feature branch.
+
+    Args:
+        c: The context object.
+    """
+    feat_branch = get_current_branch(c)
+    if not is_feature_branch(feat_branch):
+        print(f"Current branch is not a feature branch: {feat_branch}")
+        sys.exit(1)
+    pr_branch = get_pull_request_branch(feat_branch)
+    message = f"merge: {feat_branch} -> {pr_branch}"
+    assert_merge_test(c, feat_branch, dev_branch)
+    switch_from_dev(c, branch_name=pr_branch)
+    if get_current_branch(c) != pr_branch:
+        print(f"Failed to switch to pull request branch: {pr_branch}")
+        sys.exit(1)
+    git_merge(c, head=feat_branch)
+    git_merge(c, head=feat_branch, message=message)
+    ci.dev_ci(c)
+    git_switch_branch(c, dev_branch)
+    git_merge(c, head=pr_branch)
+    c.run(f"git branch -d {feat_branch}")
+    c.run(f"git branch -d {pr_branch}")
+
+
 git_ns = Collection("git")
+git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
+git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
 git_ns.add_task(commit_feat, name="commit_feat")  # type: ignore
 git_ns.add_task(commit_tool, name="commit_tool")  # type: ignore
