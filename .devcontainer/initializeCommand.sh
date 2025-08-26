@@ -39,4 +39,4 @@ else
 fi
 
 
-echo "🔚initalizeCommand.sh: Done"
+echo "🔚initializeCommand.sh: Done"

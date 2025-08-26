@@ -21,7 +21,10 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.35.5
+    hooks:
+      - id: typos
   # Bash style checker
   - repo: https://github.com/openstack/bashate
     rev: 2.1.1
