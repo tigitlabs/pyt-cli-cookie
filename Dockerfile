@@ -17,6 +17,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     vim \
     curl \
     git \
+    git-flow \
     python3-pip \
     python-is-python3 \
     pipx \
