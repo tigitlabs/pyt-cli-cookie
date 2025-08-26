@@ -9,6 +9,8 @@ from invoke.tasks import task
 dev_branch = "dev"
 main_branch = "main"
 
+BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
+
 
 @task
 def get_repo_name(c: Context) -> str:
@@ -62,7 +64,12 @@ def assert_version_type(c: Context, version_type: str) -> None:
         c (Context): The Invoke context.
         version_type (str): The version type to check.
     """
-    valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
+    if BUMP_VERSION_PROVIDER == "poetry":
+        valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
+    elif BUMP_VERSION_PROVIDER == "commitizen":
+        valid_types = ["PATCH", "MINOR", "MAJOR"]
+    else:
+        raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {BUMP_VERSION_PROVIDER}")
     if version_type not in valid_types:
         print(f"❌ Invalid version type: {version_type}. Must be one of: {', '.join(valid_types)}.")
         sys.exit(1)
