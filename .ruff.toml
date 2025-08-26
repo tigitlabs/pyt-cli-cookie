@@ -1,0 +1,43 @@
+
+exclude = [".git"]
+
+include = ["src/**/*.py", "tests/**/*.py", "tasks/**/*.py"]
+
+line-length = 120
+indent-width = 4
+
+
+[lint]
+# select = ["ALL"]
+select = [
+    # Pycodestyle - PEP 8 rules (E, W)
+    "E",
+    "W",
+    # Pyflakes - Common errors (F)
+    "F",
+    # isort - Sort imports (I)
+    "I",
+    # flake8-comprehensions (C4)
+    "C4",
+    # tidy-imports (TID)
+    "TID",
+    # pyupgrade - Modernize code (UP)
+    "UP",
+    # Pydocstyle (D) - Enforce docstring conventions
+    "D",
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+# ignore = ["D203", "D212"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+
+docstring-code-format = true
+
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["ANN001", "S101", "SLF001", "PT022", "PGH003"]

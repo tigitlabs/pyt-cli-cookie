@@ -1,0 +1,17 @@
+site_name: Template Project
+theme:
+  name: material
+plugins:
+  - search:
+  - mkdocstrings:
+      handlers:
+        # See: https://mkdocstrings.github.io/python/usage/
+        python:
+          options:
+            docstring_style: google
+
+nav:
+  - Home: index.md
+  - Python: python.md
+  - Invoke Tasks: tasks.md
+  - Changelog: changelog.md
