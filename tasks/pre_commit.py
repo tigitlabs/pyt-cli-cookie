@@ -23,7 +23,6 @@ def pre_commit(c: Context) -> None:
 @task
 def ci_pre_commit(c: Context) -> None:
     """Run the pre-commit tasks as part of the CI pipeline."""
-    update_hooks(c)
     pre_commit(c)
 
 
