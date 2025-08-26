@@ -7,5 +7,5 @@
 ### Fix
 
 - **docker**: add git-flow installation to Dockerfile
-- **commitize**: fix version provider
-- **commitize**: fix output path
+- **commitizen**: fix version provider
+- **commitizen**: fix output path
