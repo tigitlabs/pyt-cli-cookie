@@ -13,6 +13,7 @@ main_branch = "main"
 branch_prefix_feature = "feat/"
 branch_prefix_bugfix = "fix/"
 
+
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
 
 
@@ -167,9 +168,19 @@ def get_pull_request_branch(feature_branch: str) -> str:
     return f"pr/{feature_branch}"
 
 
+def get_fix_branch_name(fix_name: str) -> str:
+    """Get the fix branch name based on the fix name."""
+    return f"{branch_prefix_bugfix}{fix_name}"
+
+
 def is_feature_branch(branch_name: str) -> bool:
     """Check if the given branch name is a feature branch."""
     return branch_name.startswith(branch_prefix_feature)
+
+
+def is_fix_branch(branch_name: str) -> bool:
+    """Check if the given branch name is a fix branch."""
+    return branch_name.startswith(branch_prefix_bugfix)
 
 
 def switch_from_dev(c: Context, branch_name: str):
@@ -186,6 +197,42 @@ def switch_from_dev(c: Context, branch_name: str):
 
 
 @task
+def flow_finish(c: Context, task_type: str):
+    """Finish a feature branch.
+
+    Args:
+        c: The context object.
+        task_type: The type of task to finish (e.g., feature, fix).
+    """
+    task_branch = get_current_branch(c)
+    if task_type not in ["feature", "fix"]:
+        print(f"Invalid task type: {task_type}")
+        sys.exit(1)
+    if task_type == "feature":
+        if not is_feature_branch(task_branch):
+            print(f"Current branch is not a feature branch: {task_branch}")
+            sys.exit(1)
+    elif task_type == "fix":
+        if not is_fix_branch(task_branch):
+            print(f"Current branch is not a fix branch: {task_branch}")
+            sys.exit(1)
+    pr_branch = get_pull_request_branch(task_branch)
+    message = f"merge: {task_branch} -> {pr_branch}"
+    assert_merge_test(c, task_branch, dev_branch)
+    switch_from_dev(c, branch_name=pr_branch)
+    if get_current_branch(c) != pr_branch:
+        print(f"Failed to switch to pull request branch: {pr_branch}")
+        sys.exit(1)
+    git_merge(c, head=task_branch)
+    git_merge(c, head=task_branch, message=message)
+    ci.dev_ci(c)
+    git_switch_branch(c, dev_branch)
+    git_merge(c, head=pr_branch)
+    c.run(f"git branch -d {task_branch}")
+    c.run(f"git branch -d {pr_branch}")
+
+
+@task
 def flow_feature_start(c: Context, feature_name: str):
     """Start a new feature branch.
 
@@ -197,30 +244,24 @@ def flow_feature_start(c: Context, feature_name: str):
 
 
 @task
+def flow_fix_start(c: Context, feature_name: str):
+    """Start a new fix branch.
+
+    Args:
+        c: The context object.
+        feature_name: The name for the new fix branch.
+    """
+    switch_from_dev(c, branch_name=get_fix_branch_name(feature_name))
+
+
+@task
 def flow_feature_finish(c: Context):
     """Finish a feature branch.
 
     Args:
         c: The context object.
     """
-    feat_branch = get_current_branch(c)
-    if not is_feature_branch(feat_branch):
-        print(f"Current branch is not a feature branch: {feat_branch}")
-        sys.exit(1)
-    pr_branch = get_pull_request_branch(feat_branch)
-    message = f"merge: {feat_branch} -> {pr_branch}"
-    assert_merge_test(c, feat_branch, dev_branch)
-    switch_from_dev(c, branch_name=pr_branch)
-    if get_current_branch(c) != pr_branch:
-        print(f"Failed to switch to pull request branch: {pr_branch}")
-        sys.exit(1)
-    git_merge(c, head=feat_branch)
-    git_merge(c, head=feat_branch, message=message)
-    ci.dev_ci(c)
-    git_switch_branch(c, dev_branch)
-    git_merge(c, head=pr_branch)
-    c.run(f"git branch -d {feat_branch}")
-    c.run(f"git branch -d {pr_branch}")
+    flow_finish(c, task_type="feature")
 
 
 git_ns = Collection("git")
