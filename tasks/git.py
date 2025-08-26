@@ -255,6 +255,30 @@ def flow_fix_start(c: Context, feature_name: str):
 
 
 @task
+def flow_release_start(c: Context, increment: str):
+    """Start a new release branch.
+
+    - Creates a release branch from the development branch.
+    - Performs merge test from dev into main.
+    - Bumps the version according to the specified increment.
+    - Updates the changelog for the new release.
+      - Waits for user input to confirm the changelog.
+    - Commits the changes for the new release.
+    - Merges the release branch into the development branch.
+    - Merges development changes into the main branch using squash.
+    - Runs release CI checks on the main branch.
+    - Tags the commit on the main branch with the new version.
+    - Merges the main branch back into the development branch.
+    - Pushes the changes to the remote repository.
+
+    Args:
+        c: The context object.
+        increment: The version increment for the new release branch.
+    """
+    pass
+
+
+@task
 def flow_feature_finish(c: Context):
     """Finish a feature branch.
 
