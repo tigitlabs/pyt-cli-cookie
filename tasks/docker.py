@@ -4,7 +4,7 @@ from invoke.collection import Collection
 from invoke.context import Context
 from invoke.tasks import task
 
-IMAGE_TAG = "template-dev-container"
+import tasks.git as git
 
 
 def run_in_dev_container(c: Context, command: str) -> None:
@@ -29,25 +29,21 @@ def build_docker(c: Context) -> None:
 
     This should be run from the Docker host.
     """
-    c.run(f"docker build -t {IMAGE_TAG} .")
+    image_tag = git.get_repo_name(c)
+    c.run(f"docker build -t {image_tag} .")
 
 
 @task
 def devcontainer_build(c: Context) -> None:
     """Build the development container."""
+    image_tag = git.get_repo_name(c)
     c.run(
         f"devcontainer build \
-            --image-name {IMAGE_TAG} \
-            --label test-container={IMAGE_TAG} \
+            --image-name {image_tag} \
+            --label test-container={image_tag} \
             --config .devcontainer/devcontainer.json \
             --workspace-folder . --log-level debug",
     )
-
-
-@task
-def devcontainer_up(c: Context) -> None:
-    """Start the development container."""
-    c.run("./scripts/dev-con-up.sh")
 
 
 @task
@@ -74,6 +70,5 @@ def exec_docker(c: Context) -> None:
 docker_ns = Collection("docker")
 docker_ns.add_task(build_docker, name="build")  # type: ignore[arg-type]
 docker_ns.add_task(devcontainer_build, name="devcontainer_build")  # type: ignore[arg-type]
-docker_ns.add_task(devcontainer_up, name="devcontainer_up")  # type: ignore[arg-type]
 docker_ns.add_task(ci_docker, name="ci")  # type: ignore[arg-type]
 docker_ns.add_task(exec_docker, name="exec")  # type: ignore[arg-type]

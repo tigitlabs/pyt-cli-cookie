@@ -10,6 +10,12 @@ dev_branch = "dev"
 main_branch = "main"
 
 
+@task
+def get_repo_name(c: Context) -> str:
+    """Get the name of the current Git repository."""
+    return c.run("basename `git rev-parse --show-toplevel`", hide=True).stdout.strip()  # type: ignore
+
+
 def get_current_branch(c: Context) -> str:
     """Get the name of the current Git branch."""
     return c.run("git rev-parse --abbrev-ref HEAD", hide=True).stdout.strip()  # type: ignore
