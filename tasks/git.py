@@ -264,8 +264,20 @@ def flow_feature_finish(c: Context):
     flow_finish(c, task_type="feature")
 
 
+@task
+def flow_fix_finish(c: Context):
+    """Finish a fix branch.
+
+    Args:
+        c: The context object.
+    """
+    flow_finish(c, task_type="fix")
+
+
 git_ns = Collection("git")
 git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
 git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
+git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
+git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(commit_feat, name="commit_feat")  # type: ignore
 git_ns.add_task(commit_tool, name="commit_tool")  # type: ignore
