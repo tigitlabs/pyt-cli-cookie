@@ -54,7 +54,7 @@ def devcontainer_up(c: Context) -> None:
 def ci_docker(c: Context) -> None:
     """Run the tests in the Docker container."""
     build_docker(c)
-    devcontainer_up(c)
+    devcontainer_build(c)
 
 
 @task
@@ -77,39 +77,3 @@ docker_ns.add_task(devcontainer_build, name="devcontainer_build")  # type: ignor
 docker_ns.add_task(devcontainer_up, name="devcontainer_up")  # type: ignore[arg-type]
 docker_ns.add_task(ci_docker, name="ci")  # type: ignore[arg-type]
 docker_ns.add_task(exec_docker, name="exec")  # type: ignore[arg-type]
-
-
-# #!/bin/bash
-
-# PROJECT_ROOT=$(pwd)
-# IMAGE_NAME="loggy-dev-con"
-# CONFIG_FILE="$PROJECT_ROOT/.devcontainer/devcontainer.json"
-# ID_LABEL=$IMAGE_NAME
-# ID_LABEL="test-container=${IMAGE_NAME}"
-
-# # Exit script with error if any command returns an error
-# set -e
-
-
-# echo "Starting build for image: $IMAGE_NAME"
-# devcontainer build \
-# --image-name $IMAGE_NAME \
-# --label ${ID_LABEL} \
-# --config $CONFIG_FILE \
-# --workspace-folder ../. \
-# --log-level debug
-
-# # Smoke test to check if the container builds
-# devcontainer build --image-name loggy-dev-con
-# --label test-container=loggy-dev-con --config .devcontainer/devcontainer.json --workspace-folder . --log-level debug
-
-# echo "Build complete for image: $IMAGE_NAME"
-
-# # Start the container
-
-# devcontainer up --workspace-folder $PROJECT_ROOT ---id-label ${ID_LABEL} --config $CONFIG_FILE --log-level debug
-# echo "Container started successfully"
-
-# # Run some tests in the container
-# echo "🧪Running tests in the container"
-# runInDevContainer "git --version"
