@@ -219,8 +219,12 @@ class GitFlow:
         ci.dev_ci(self.c)
         self.git_switch_branch(dev_branch)
         self.git_merge(head=pr_branch)
-        self.c.run(f"git branch -d {task_branch}")
+        """
+        If the pr_branch was merged successfully, delete the branch with -d.
+        The working branch has to be deleted with -D because it is not fully merged.
+        """
         self.c.run(f"git branch -d {pr_branch}")
+        self.c.run(f"git branch -D {task_branch}")
 
     def flow_release_start(self, increment: str):
         """Start a new release branch.
