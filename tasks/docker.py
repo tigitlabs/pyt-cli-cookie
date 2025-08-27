@@ -4,7 +4,7 @@ from invoke.collection import Collection
 from invoke.context import Context
 from invoke.tasks import task
 
-import tasks.git as git
+from tasks.git import GitFlow
 
 
 def run_in_dev_container(c: Context, command: str) -> None:
@@ -29,14 +29,16 @@ def build_docker(c: Context) -> None:
 
     This should be run from the Docker host.
     """
-    image_tag = git.get_repo_name(c)
+    git = GitFlow(c)
+    image_tag = git.get_repo_name()
     c.run(f"docker build -t {image_tag} .")
 
 
 @task
 def devcontainer_build(c: Context) -> None:
     """Build the development container."""
-    image_tag = git.get_repo_name(c)
+    git = GitFlow(c)
+    image_tag = git.get_repo_name()
     c.run(
         f"devcontainer build \
             --image-name {image_tag} \

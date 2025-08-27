@@ -42,6 +42,13 @@ def test_unit(c: Context) -> None:
 
 
 @task
+def test(c: Context) -> None:
+    """Run all Python tests."""
+    test_static(c)
+    test_unit(c)
+
+
+@task
 def build(c: Context) -> None:
     """Build the project."""
     print("\n👟 Building project\n")
@@ -60,6 +67,7 @@ def ci_python(c: Context) -> None:
 python_ns = Collection("python")
 python_ns.add_task(ruff, name="ruff")  # type: ignore[arg-type]
 python_ns.add_task(mypy_python, name="mypy")  # type: ignore[arg-type]
+python_ns.add_task(test, name="test")  # type: ignore[arg-type]
 python_ns.add_task(test_static, name="test_static")  # type: ignore[arg-type]
 python_ns.add_task(test_unit, name="test_unit")  # type: ignore[arg-type]
 python_ns.add_task(pip_upgrade, name="pip_upgrade")  # type: ignore[arg-type]

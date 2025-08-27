@@ -36,6 +36,8 @@ else
         echo "⚠️ SSH authentication to github.com will not work"
         echo "https://code.visualstudio.com/remote/advancedcontainers/sharing-git-credentials#_using-ssh-keys"
     fi
+    echo "Add your SSH key to the ssh-agent"
+    ssh-add
 fi
 
 
