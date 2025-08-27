@@ -291,14 +291,14 @@ class GitFlow:
         self.git_switch_branch(main_branch)
         self.git_pull(main_branch)
         self.git_switch_branch(tmp_main_branch)
-        self.c.run(f"git merge --squash -X theirs {release_branch} ")
-        self.c.run(f"git commit -m 'merge: squash {release_branch} -> {main_branch}'")
+        self.c.run(f"git merge --squash --no-ff {release_branch} -m 'merge: {release_branch} -> {main_branch}'")
         ci.dev_ci(self.c)
         self.git_switch_branch(main_branch)
         self.git_merge(head=tmp_main_branch)
+        self.c.run(f"git branch -d {tmp_main_branch}")
         self.git_tag(version=new_version)
         self.git_switch_branch(dev_branch)
-        self.git_merge(head=main_branch)
+        self.git_merge(head=main_branch, message=f"merge: {main_branch} -> {dev_branch}")
 
 
 @task
