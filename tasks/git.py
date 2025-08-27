@@ -131,11 +131,17 @@ class GitFlow:
         else:
             self.c.run(f"git switch -c {branch_name}", hide=True)
 
-    def bump_version(self, version_type: str) -> None:
+    def bump_version(self, increment: str, provider: str) -> None:
         """Bump the project version."""
-        self.assert_version_type(version_type, BUMP_VERSION_PROVIDER)
-        print("👟 Bumping version to\n")
-        self.c.run(f"poetry version {version_type}")
+        self.assert_version_type(increment, provider)
+        new_version = self.get_new_version(increment)
+        print(f"👟 Bumping version to {new_version}\n")
+        if provider == "poetry":
+            self.c.run(f"poetry version {increment}")
+        elif provider == "commitizen":
+            self.c.run(f"cz bump --increment {increment}")
+        else:
+            raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
 
     def get_feature_branch_name(self, feature_name: str) -> str:
         """Get the feature branch name based on the feature name."""
@@ -178,11 +184,15 @@ class GitFlow:
         print("👟 Pulling latest changes from remote\n")
         self.c.run(f"git pull origin {branch}", hide=True)
 
+    def update_changelog(self, new_version: str) -> None:
+        """Update the changelog for the new version."""
+        print(f"👟 Updating changelog for version {new_version}\n")
+        self.c.run(f"cz changelog {new_version}")
+
     def flow_finish(self, task_type: str):
         """Finish a feature branch.
 
         Args:
-            c: The context object.
             task_type: The type of task to finish (e.g., feature, fix).
         """
         task_branch = self.get_current_branch()
@@ -234,13 +244,29 @@ class GitFlow:
         self.assert_version_type(increment, BUMP_VERSION_PROVIDER)
         new_version = self.get_new_version(increment)
         release_branch = self.get_release_branch_name(new_version)
+        tmp_main_branch = f"temp_{new_version}/{main_branch}"
         if self.get_current_branch() != dev_branch:
             print(f"❌ You must be on the {dev_branch} branch to start a release.")
-            # sys.exit(1)
+            sys.exit(1)
         self.git_pull(dev_branch)
         print(f"New version for release: {new_version}")
         self.assert_no_uncommitted()
         self.git_switch_branch(release_branch)
+        self.merge_test(dev_branch, main_branch)
+        self.bump_version(increment, BUMP_VERSION_PROVIDER)
+        print("\n👟 Updating changelog\n")
+        print(
+            "🔥 The changelog has been updated and committed.\n"
+            "Please review and commit them with: git commit --amend --no-edit"
+        )
+        print("❓️ Do you want to continue the release process? (y/n)")
+        if input().strip().lower() != "y":
+            print("❌ Release process aborted.")
+            sys.exit(1)
+        self.git_switch_branch(main_branch)
+        self.git_pull(main_branch)
+        self.git_switch_branch(tmp_main_branch)
+        self.c.run(f"git merge --squash -x theirs {release_branch} -m 'Squash merge main into {tmp_main_branch}'")
 
 
 @task
