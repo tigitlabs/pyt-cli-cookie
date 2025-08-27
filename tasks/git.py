@@ -91,7 +91,7 @@ class GitFlow:
         if provider == "poetry":
             valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
         elif provider == "commitizen":
-            valid_types = ["PATCH", "MINOR", "MAJOR"]
+            valid_types = ["patch", "minor", "major"]
         else:
             raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
         if version_type not in valid_types:
@@ -147,7 +147,7 @@ class GitFlow:
         if provider == "poetry":
             self.c.run(f"poetry version {increment}")
         elif provider == "commitizen":
-            self.c.run(f"cz bump --files-only --increment {increment}")
+            self.c.run(f"cz bump --files-only --increment {increment.upper()}")
         else:
             raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
 
