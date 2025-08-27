@@ -289,15 +289,15 @@ def flow_feature_start(c: Context, feature_name: str):
 
 
 @task
-def flow_fix_start(c: Context, feature_name: str):
+def flow_fix_start(c: Context, fix_name: str):
     """Start a new fix branch.
 
     Args:
         c: The context object.
-        feature_name: The name for the new fix branch.
+        fix_name: The name for the new fix branch.
     """
     git = GitFlow(c)
-    git.switch_from(dev_branch, git.get_feature_branch_name(feature_name))
+    git.switch_from(dev_branch, git.get_fix_branch_name(fix_name))
 
 
 @task
