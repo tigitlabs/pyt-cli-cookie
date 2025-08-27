@@ -296,10 +296,11 @@ class GitFlow:
         ci.dev_ci(self.c)
         self.git_switch_branch(main_branch)
         self.git_merge(head=tmp_main_branch)
-        self.c.run(f"git branch -d {tmp_main_branch}")
         self.git_tag(version=new_version)
         self.git_switch_branch(dev_branch)
         self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
+        self.c.run(f"git branch -d {tmp_main_branch}")
+        self.c.run(f"git branch -D {release_branch}")
 
 
 @task
