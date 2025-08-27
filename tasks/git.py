@@ -256,7 +256,7 @@ class GitFlow:
         print(f"New version for release: {new_version}")
         self.assert_no_uncommitted()
         self.git_switch_branch(release_branch)
-        self.merge_test(dev_branch, main_branch)
+        self.merge_test(release_branch, main_branch)
         print("\n👟 Bumping version & updating changelog\n")
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
