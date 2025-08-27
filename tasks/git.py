@@ -12,224 +12,192 @@ dev_branch = "dev"
 main_branch = "main"
 branch_prefix_feature = "feat/"
 branch_prefix_bugfix = "fix/"
+branch_prefix_release = "release/v"
+branch_prefix_pr = "pr/"
 
 
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
 
 
-@task
-def get_repo_name(c: Context) -> str:
-    """Get the name of the current Git repository."""
-    return c.run("basename `git rev-parse --show-toplevel`", hide=True).stdout.strip()  # type: ignore
+class GitFlow:
+    """Collector class to manage Git flow operations."""
 
+    def __init__(self, c: Context):
+        """Initialize the GitFlow class.
 
-def get_current_branch(c: Context) -> str:
-    """Get the name of the current Git branch."""
-    return c.run("git rev-parse --abbrev-ref HEAD", hide=True).stdout.strip()  # type: ignore
+        Args:
+            c: The context object.
+        """
+        self.c = c
 
+    def get_repo_name(self) -> str:
+        """Get the name of the current Git repository."""
+        return self.c.run("basename `git rev-parse --show-toplevel`", hide=True).stdout.strip()  # type: ignore
 
-def assert_no_uncommitted(c) -> None:
-    """Assert that the git working directory is clean."""
-    result = c.run("git status --porcelain", hide=True, warn=True).stdout.strip()  # type: ignore
-    if result:
-        print("❌ Warning: You have uncommitted changes. Aborting.")
-        sys.exit(1)
-    print("✅ No uncommitted changes found.")
+    def get_current_branch(self) -> str:
+        """Get the name of the current Git branch."""
+        return self.c.run("git rev-parse --abbrev-ref HEAD", hide=True).stdout.strip()  # type: ignore
 
-
-def git_merge(c: Context, head: str, message: str = "") -> None:
-    """Merge the specified branches.
-
-    Args:
-        c (Context): The Invoke context.
-        head (str): The head branch to merge into.
-        message (str): The commit message for the merge. If not provided, a fast-forward merge will be performed.
-    """
-    if message != "":
-        c.run(f"git merge --no-ff {head} -m '{message}'")
-    else:
-        c.run(f"git merge --ff {head}")
-
-
-def assert_merge_test(c: Context, base: str, head: str) -> None:
-    """Test if a PR would cause merge conflicts.
-
-    Args:
-        c (Context): The Invoke context.
-        base (str): The feature/fix branch.
-        head (str): The head branch
-    """
-    tmp_head = f"temp/{head}"
-    git_switch_branch(c, head)
-    c.run(f"git pull origin {head}")
-    git_switch_branch(c, tmp_head)
-    print("👟 Testing merge conflicts...\n")
-    result = c.run(f"git merge --no-commit --no-ff {base}", hide=True, warn=True)  # type: ignore
-    output = (getattr(result, "stdout", "") or "") + (getattr(result, "stderr", "") or "")  # type: ignore
-    c.run("git merge --abort")
-    git_switch_branch(c, base)
-    c.run(f"git branch -D {tmp_head}")
-    if "Automatic merge went well" in output:
-        print("✅ Merge test was successful.")
-    else:
-        print(f"🛑Merge test {base} -> {head} failed. Resolve Merge Conflict.\nRun: git merge --no-commit {base}")
-        sys.exit(1)
-
-
-def assert_version_type(c: Context, version_type: str) -> None:
-    """Assert that the version type is valid.
-
-    Args:
-        c (Context): The Invoke context.
-        version_type (str): The version type to check.
-    """
-    if BUMP_VERSION_PROVIDER == "poetry":
-        valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
-    elif BUMP_VERSION_PROVIDER == "commitizen":
-        valid_types = ["PATCH", "MINOR", "MAJOR"]
-    else:
-        raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {BUMP_VERSION_PROVIDER}")
-    if version_type not in valid_types:
-        print(f"❌ Invalid version type: {version_type}. Must be one of: {', '.join(valid_types)}.")
-        sys.exit(1)
-
-
-def get_current_version(c: Context) -> str:
-    """Get the current version from the pyproject.toml file."""
-    return c.run("poetry version --short", hide=True).stdout.strip()  # type: ignore
-
-
-def get_new_version(c: Context, version_type: str) -> str:
-    """Get the new version based on the current version.
-
-    Args:
-        c (Context): The Invoke context.
-        version_type (str): \
-            The type of version to release (e.g., patch, minor, major, prepatch, preminor, premajor, prerelease).
-    """
-    assert_version_type(c, version_type)
-    return c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
-
-
-def get_release_branch(version: str) -> str:
-    """Get the release branch name based on the new version."""
-    return f"release/v{version}"
-
-
-def git_switch_branch(c: Context, branch_name: str) -> None:
-    """Switch to the specified Git branch."""
-    print(f"👟 Switching to branch {branch_name}")
-    exists = c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
-    if branch_name == get_current_branch(c):
-        return
-    if exists:
-        c.run(f"git switch {branch_name}")
-        return
-    else:
-        c.run(f"git switch -c {branch_name}")
-
-
-def bump_version(c: Context, version_type: str) -> None:
-    """Bump the project version."""
-    assert_version_type(c, version_type)
-    print("👟 Bumping version to\n")
-    c.run(f"poetry version {version_type}")
-
-
-@task
-def commit_feat(c: Context, message: str):
-    """Commit a feature change.
-
-    Args:
-        c: The context object.
-        message: The commit message.
-    """
-    c.run("git commit -m 'feat: add new feature'")
-
-
-@task
-def commit_tool(c: Context, message: str):
-    """Commit a tool change.
-
-    Args:
-        c: The context object.
-        message: The commit message.
-    """
-    c.run("git commit -m 'tool: add new feature'")
-
-
-def get_feature_branch_name(feature_name: str) -> str:
-    """Get the feature branch name based on the feature name."""
-    return f"{branch_prefix_feature}{feature_name}"
-
-
-def get_pull_request_branch(feature_branch: str) -> str:
-    """Get the pull request branch name based on the feature branch."""
-    return f"pr/{feature_branch}"
-
-
-def get_fix_branch_name(fix_name: str) -> str:
-    """Get the fix branch name based on the fix name."""
-    return f"{branch_prefix_bugfix}{fix_name}"
-
-
-def is_feature_branch(branch_name: str) -> bool:
-    """Check if the given branch name is a feature branch."""
-    return branch_name.startswith(branch_prefix_feature)
-
-
-def is_fix_branch(branch_name: str) -> bool:
-    """Check if the given branch name is a fix branch."""
-    return branch_name.startswith(branch_prefix_bugfix)
-
-
-def switch_from_dev(c: Context, branch_name: str):
-    """Switch from the development branch to a feature branch.
-
-    Args:
-        c: The context object.
-        branch_name: The name of the feature branch.
-    """
-    assert_no_uncommitted(c)
-    git_switch_branch(c, dev_branch)
-    c.run(f"git pull origin {dev_branch}")
-    git_switch_branch(c, branch_name)
-
-
-@task
-def flow_finish(c: Context, task_type: str):
-    """Finish a feature branch.
-
-    Args:
-        c: The context object.
-        task_type: The type of task to finish (e.g., feature, fix).
-    """
-    task_branch = get_current_branch(c)
-    if task_type not in ["feature", "fix"]:
-        print(f"Invalid task type: {task_type}")
-        sys.exit(1)
-    if task_type == "feature":
-        if not is_feature_branch(task_branch):
-            print(f"Current branch is not a feature branch: {task_branch}")
+    def assert_no_uncommitted(self) -> None:
+        """Assert that the git working directory is clean."""
+        result = self.c.run("git status --porcelain", hide=True, warn=True).stdout.strip()  # type: ignore
+        if result:
+            print("❌ Warning: You have uncommitted changes. Aborting.")
             sys.exit(1)
-    elif task_type == "fix":
-        if not is_fix_branch(task_branch):
-            print(f"Current branch is not a fix branch: {task_branch}")
+        print("✅ No uncommitted changes found.")
+
+    def git_merge(self, head: str, message: str = "") -> None:
+        """Merge the specified branches.
+
+        Args:
+            head (str): The head branch to merge into.
+            message (str): The commit message for the merge. If not provided, a fast-forward merge will be performed.
+        """
+        if message != "":
+            self.c.run(f"git merge --no-ff {head} -m '{message}'")
+        else:
+            self.c.run(f"git merge --ff {head}")
+
+    def assert_merge_test(self, base: str, head: str) -> None:
+        """Test if a PR would cause merge conflicts.
+
+        Args:
+            base (str): The feature/fix branch.
+            head (str): The head branch
+        """
+        tmp_head = f"temp/{head}"
+        self.git_switch_branch(head)
+        self.c.run(f"git pull origin {head}")
+        self.git_switch_branch(tmp_head)
+        print("👟 Testing merge conflicts...\n")
+        result = self.c.run(f"git merge --no-commit --no-ff {base}", hide=True, warn=True)  # type: ignore
+        output = (getattr(result, "stdout", "") or "") + (getattr(result, "stderr", "") or "")  # type: ignore
+        self.c.run("git merge --abort")
+        self.git_switch_branch(base)
+        self.c.run(f"git branch -D {tmp_head}")
+        if "Automatic merge went well" in output:
+            print("✅ Merge test was successful.")
+        else:
+            print(f"🛑Merge test {base} -> {head} failed. Resolve Merge Conflict.\nRun: git merge --no-commit {base}")
             sys.exit(1)
-    pr_branch = get_pull_request_branch(task_branch)
-    message = f"merge: {task_branch} -> {pr_branch}"
-    assert_merge_test(c, task_branch, dev_branch)
-    switch_from_dev(c, branch_name=pr_branch)
-    if get_current_branch(c) != pr_branch:
-        print(f"Failed to switch to pull request branch: {pr_branch}")
-        sys.exit(1)
-    git_merge(c, head=task_branch)
-    git_merge(c, head=task_branch, message=message)
-    ci.dev_ci(c)
-    git_switch_branch(c, dev_branch)
-    git_merge(c, head=pr_branch)
-    c.run(f"git branch -d {task_branch}")
-    c.run(f"git branch -d {pr_branch}")
+
+    def assert_version_type(self, version_type: str) -> None:
+        """Assert that the version type is valid.
+
+        Args:
+            version_type (str): The version type to check.
+        """
+        if BUMP_VERSION_PROVIDER == "poetry":
+            valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
+        elif BUMP_VERSION_PROVIDER == "commitizen":
+            valid_types = ["PATCH", "MINOR", "MAJOR"]
+        else:
+            raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {BUMP_VERSION_PROVIDER}")
+        if version_type not in valid_types:
+            print(f"❌ Invalid version type: {version_type}. Must be one of: {', '.join(valid_types)}.")
+            sys.exit(1)
+
+    def get_current_version(self) -> str:
+        """Get the current version from the pyproject.toml file."""
+        return self.c.run("poetry version --short", hide=True).stdout.strip()  # type: ignore
+
+    def get_new_version(self, version_type: str) -> str:
+        """Get the new version based on the current version.
+
+        Args:
+            version_type (str): \
+                The type of version to release (e.g., patch, minor, major, prepatch, preminor, premajor, prerelease).
+        """
+        self.assert_version_type(version_type)
+        return self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
+
+    def get_release_branch(self, version: str) -> str:
+        """Get the release branch name based on the new version."""
+        return f"{branch_prefix_release}{version}"
+
+    def git_switch_branch(self, branch_name: str) -> None:
+        """Switch to the specified Git branch."""
+        print(f"👟 Switching to branch {branch_name}")
+        exists = self.c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
+        if branch_name == self.get_current_branch():
+            return
+        if exists:
+            self.c.run(f"git switch {branch_name}", hide=True)
+            return
+        else:
+            self.c.run(f"git switch -c {branch_name}", hide=True)
+
+    def bump_version(self, version_type: str) -> None:
+        """Bump the project version."""
+        self.assert_version_type(version_type)
+        print("👟 Bumping version to\n")
+        self.c.run(f"poetry version {version_type}")
+
+    def get_feature_branch_name(self, feature_name: str) -> str:
+        """Get the feature branch name based on the feature name."""
+        return f"{branch_prefix_feature}{feature_name}"
+
+    def get_pull_request_branch(self, feature_branch: str) -> str:
+        """Get the pull request branch name based on the feature branch."""
+        return f"{branch_prefix_pr}{feature_branch}"
+
+    def get_fix_branch_name(self, fix_name: str) -> str:
+        """Get the fix branch name based on the fix name."""
+        return f"{branch_prefix_bugfix}{fix_name}"
+
+    def is_feature_branch(self, branch_name: str) -> bool:
+        """Check if the given branch name is a feature branch."""
+        return branch_name.startswith(branch_prefix_feature)
+
+    def is_fix_branch(self, branch_name: str) -> bool:
+        """Check if the given branch name is a fix branch."""
+        return branch_name.startswith(branch_prefix_bugfix)
+
+    def switch_from(self, base: str, new: str):
+        """Switch from a base branch to a new working branch.
+
+        Args:
+            base: The name of the base branch.
+            new: The name of the new working branch.
+        """
+        self.assert_no_uncommitted()
+        self.git_switch_branch(base)
+        self.c.run(f"git pull origin {base}")
+        self.git_switch_branch(new)
+
+    def flow_finish(self, task_type: str):
+        """Finish a feature branch.
+
+        Args:
+            c: The context object.
+            task_type: The type of task to finish (e.g., feature, fix).
+        """
+        task_branch = self.get_current_branch()
+        if task_type not in ["feature", "fix"]:
+            print(f"Invalid task type: {task_type}")
+            sys.exit(1)
+        if task_type == "feature":
+            if not self.is_feature_branch(task_branch):
+                print(f"Current branch is not a feature branch: {task_branch}")
+                sys.exit(1)
+        elif task_type == "fix":
+            if not self.is_fix_branch(task_branch):
+                print(f"Current branch is not a fix branch: {task_branch}")
+                sys.exit(1)
+        pr_branch = self.get_pull_request_branch(task_branch)
+        message = f"merge: {task_branch} -> {pr_branch}"
+        self.assert_merge_test(task_branch, dev_branch)
+        self.switch_from(dev_branch, pr_branch)
+        if self.get_current_branch() != pr_branch:
+            print(f"Failed to switch to pull request branch: {pr_branch}")
+            sys.exit(1)
+        self.git_merge(head=task_branch)
+        self.git_merge(head=task_branch, message=message)
+        ci.dev_ci(self.c)
+        self.git_switch_branch(dev_branch)
+        self.git_merge(head=pr_branch)
+        self.c.run(f"git branch -d {task_branch}")
+        self.c.run(f"git branch -d {pr_branch}")
 
 
 @task
@@ -240,7 +208,8 @@ def flow_feature_start(c: Context, feature_name: str):
         c: The context object.
         feature_name: The name for the new feature branch.
     """
-    switch_from_dev(c, branch_name=get_feature_branch_name(feature_name))
+    git = GitFlow(c)
+    git.switch_from(dev_branch, git.get_feature_branch_name(feature_name))
 
 
 @task
@@ -251,7 +220,8 @@ def flow_fix_start(c: Context, feature_name: str):
         c: The context object.
         feature_name: The name for the new fix branch.
     """
-    switch_from_dev(c, branch_name=get_fix_branch_name(feature_name))
+    git = GitFlow(c)
+    git.switch_from(dev_branch, git.get_feature_branch_name(feature_name))
 
 
 @task
@@ -285,7 +255,8 @@ def flow_feature_finish(c: Context):
     Args:
         c: The context object.
     """
-    flow_finish(c, task_type="feature")
+    git = GitFlow(c)
+    git.flow_finish(task_type="feature")
 
 
 @task
@@ -295,7 +266,8 @@ def flow_fix_finish(c: Context):
     Args:
         c: The context object.
     """
-    flow_finish(c, task_type="fix")
+    git = GitFlow(c)
+    git.flow_finish(task_type="fix")
 
 
 git_ns = Collection("git")
@@ -303,5 +275,3 @@ git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
 git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
 git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
-git_ns.add_task(commit_feat, name="commit_feat")  # type: ignore
-git_ns.add_task(commit_tool, name="commit_tool")  # type: ignore
