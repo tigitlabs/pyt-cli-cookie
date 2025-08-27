@@ -58,7 +58,7 @@ class GitFlow:
         else:
             self.c.run(f"git merge --ff {head}")
 
-    def assert_merge_test(self, base: str, head: str) -> None:
+    def merge_test(self, base: str, head: str) -> None:
         """Test if a PR would cause merge conflicts.
 
         Args:
@@ -81,18 +81,19 @@ class GitFlow:
             print(f"🛑Merge test {base} -> {head} failed. Resolve Merge Conflict.\nRun: git merge --no-commit {base}")
             sys.exit(1)
 
-    def assert_version_type(self, version_type: str) -> None:
+    def assert_version_type(self, version_type: str, provider: str) -> None:
         """Assert that the version type is valid.
 
         Args:
             version_type (str): The version type to check.
+            provider (str): The provider to check against.
         """
-        if BUMP_VERSION_PROVIDER == "poetry":
+        if provider == "poetry":
             valid_types = ["patch", "minor", "major", "prepatch", "preminor", "premajor", "prerelease"]
-        elif BUMP_VERSION_PROVIDER == "commitizen":
+        elif provider == "commitizen":
             valid_types = ["PATCH", "MINOR", "MAJOR"]
         else:
-            raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {BUMP_VERSION_PROVIDER}")
+            raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
         if version_type not in valid_types:
             print(f"❌ Invalid version type: {version_type}. Must be one of: {', '.join(valid_types)}.")
             sys.exit(1)
@@ -108,7 +109,10 @@ class GitFlow:
             version_type (str): \
                 The type of version to release (e.g., patch, minor, major, prepatch, preminor, premajor, prerelease).
         """
-        self.assert_version_type(version_type)
+        self.assert_version_type(version_type, BUMP_VERSION_PROVIDER)
+        if BUMP_VERSION_PROVIDER == "commitizen":
+            version_type = version_type.lower()
+        self.assert_version_type(version_type, "poetry")
         return self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
 
     def get_release_branch(self, version: str) -> str:
@@ -129,7 +133,7 @@ class GitFlow:
 
     def bump_version(self, version_type: str) -> None:
         """Bump the project version."""
-        self.assert_version_type(version_type)
+        self.assert_version_type(version_type, BUMP_VERSION_PROVIDER)
         print("👟 Bumping version to\n")
         self.c.run(f"poetry version {version_type}")
 
@@ -144,6 +148,10 @@ class GitFlow:
     def get_fix_branch_name(self, fix_name: str) -> str:
         """Get the fix branch name based on the fix name."""
         return f"{branch_prefix_bugfix}{fix_name}"
+
+    def get_release_branch_name(self, version: str) -> str:
+        """Get the release branch name based on the new version."""
+        return f"{branch_prefix_release}{version}"
 
     def is_feature_branch(self, branch_name: str) -> bool:
         """Check if the given branch name is a feature branch."""
@@ -164,6 +172,11 @@ class GitFlow:
         self.git_switch_branch(base)
         self.c.run(f"git pull origin {base}")
         self.git_switch_branch(new)
+
+    def git_pull(self, branch: str) -> None:
+        """Pull the latest changes from the remote repository."""
+        print("👟 Pulling latest changes from remote\n")
+        self.c.run(f"git pull origin {branch}", hide=True)
 
     def flow_finish(self, task_type: str):
         """Finish a feature branch.
@@ -186,7 +199,7 @@ class GitFlow:
                 sys.exit(1)
         pr_branch = self.get_pull_request_branch(task_branch)
         message = f"merge: {task_branch} -> {pr_branch}"
-        self.assert_merge_test(task_branch, dev_branch)
+        self.merge_test(task_branch, dev_branch)
         self.switch_from(dev_branch, pr_branch)
         if self.get_current_branch() != pr_branch:
             print(f"Failed to switch to pull request branch: {pr_branch}")
@@ -198,6 +211,36 @@ class GitFlow:
         self.git_merge(head=pr_branch)
         self.c.run(f"git branch -d {task_branch}")
         self.c.run(f"git branch -d {pr_branch}")
+
+    def flow_release_start(self, increment: str):
+        """Start a new release branch.
+
+        - Creates a release branch from the development branch.
+        - Performs merge test from dev into main.
+        - Bumps the version according to the specified increment.
+        - Updates the changelog for the new release.
+        - Waits for user input to confirm the changelog.
+        - Commits the changes for the new release.
+        - Merges the release branch into the development branch.
+        - Merges development changes into the main branch using squash.
+        - Runs release CI checks on the main branch.
+        - Tags the commit on the main branch with the new version.
+        - Merges the main branch back into the development branch.
+        - Pushes the changes to the remote repository.
+
+        Args:
+            increment: The version increment for the new release branch.
+        """
+        self.assert_version_type(increment, BUMP_VERSION_PROVIDER)
+        new_version = self.get_new_version(increment)
+        release_branch = self.get_release_branch_name(new_version)
+        if self.get_current_branch() != dev_branch:
+            print(f"❌ You must be on the {dev_branch} branch to start a release.")
+            # sys.exit(1)
+        self.git_pull(dev_branch)
+        print(f"New version for release: {new_version}")
+        self.assert_no_uncommitted()
+        self.git_switch_branch(release_branch)
 
 
 @task
@@ -245,7 +288,8 @@ def flow_release_start(c: Context, increment: str):
         c: The context object.
         increment: The version increment for the new release branch.
     """
-    pass
+    git = GitFlow(c)
+    git.flow_release_start(increment)
 
 
 @task
@@ -275,3 +319,4 @@ git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
 git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
 git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
+git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
