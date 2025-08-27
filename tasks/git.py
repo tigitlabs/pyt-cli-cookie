@@ -197,6 +197,11 @@ class GitFlow:
         print(f"👟 Creating Git tag {version}\n")
         self.c.run(f"git tag {version}")
 
+    def git_push(self, branch: str) -> None:
+        """Push the specified branch to the remote repository."""
+        print(f"👟 Pushing branch {branch} to remote\n")
+        self.c.run(f"git push origin {branch}")
+
     def git_tag_push(self, version: str) -> None:
         """Push the Git tag to the remote repository."""
         print(f"👟 Pushing Git tag {version}\n")
@@ -243,6 +248,7 @@ class GitFlow:
         """
         self.c.run(f"git branch -d {pr_branch}")
         self.c.run(f"git branch -D {task_branch}")
+        self.git_push(dev_branch)
 
     def flow_release_start(self, increment: str):
         """Start a new release branch.
