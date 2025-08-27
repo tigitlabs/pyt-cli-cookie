@@ -193,7 +193,6 @@ class GitFlow:
         """Finish a feature branch.
 
         Args:
-            c: The context object.
             task_type: The type of task to finish (e.g., feature, fix).
         """
         task_branch = self.get_current_branch()
