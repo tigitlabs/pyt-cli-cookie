@@ -122,14 +122,22 @@ class GitFlow:
     def git_switch_branch(self, branch_name: str) -> None:
         """Switch to the specified Git branch."""
         print(f"👟 Switching to branch {branch_name}")
-        exists = self.c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
-        if branch_name == self.get_current_branch():
-            return
-        if exists:
+        self.c.run("git fetch origin")
+        exists_locally = self.c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
+        remote_branch = f"origin/{branch_name}"
+        remote_exists = self.c.run(f"git ls-remote --heads origin {branch_name}", hide=True).stdout.strip()  # type: ignore
+        if exists_locally:
             self.c.run(f"git switch {branch_name}", hide=True)
-            return
+            if remote_exists:
+                print(f"Updating {branch_name} from {remote_branch}")
+                self.c.run(f"git pull origin {branch_name}", hide=True)
         else:
-            self.c.run(f"git switch -c {branch_name}", hide=True)
+            if remote_exists:
+                print(f"Creating and tracking {branch_name} from {remote_branch}")
+                self.c.run(f"git switch --track {remote_branch}", hide=True)
+            else:
+                print(f"Creating new branch {branch_name} from current HEAD")
+                self.c.run(f"git switch -c {branch_name}", hide=True)
 
     def bump_version(self, increment: str, provider: str) -> None:
         """Bump the project version."""
