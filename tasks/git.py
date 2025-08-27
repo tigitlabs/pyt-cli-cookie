@@ -139,7 +139,7 @@ class GitFlow:
         if provider == "poetry":
             self.c.run(f"poetry version {increment}")
         elif provider == "commitizen":
-            self.c.run(f"cz bump --increment {increment}")
+            self.c.run(f"cz bump --files-only --increment {increment}")
         else:
             raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
 
@@ -257,8 +257,11 @@ class GitFlow:
         self.assert_no_uncommitted()
         self.git_switch_branch(release_branch)
         self.merge_test(dev_branch, main_branch)
+        print("\n👟 Bumping version & updating changelog\n")
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
-        print("\n👟 Updating changelog\n")
+        self.c.run("git add pyproject.toml")
+        self.c.run("git add docs/changelog.md")
+        self.c.run("git commit -m 'chore: update changelog for release'")
         print(
             "🔥 The changelog has been updated and committed.\n"
             "Please review and commit them with: git commit --amend --no-edit"
