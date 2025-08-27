@@ -184,6 +184,16 @@ class GitFlow:
         print("👟 Pulling latest changes from remote\n")
         self.c.run(f"git pull origin {branch}", hide=True)
 
+    def git_tag(self, version: str) -> None:
+        """Create a Git tag for the specified version."""
+        print(f"👟 Creating Git tag {version}\n")
+        self.c.run(f"git tag {version}")
+
+    def git_tag_push(self, version: str) -> None:
+        """Push the Git tag to the remote repository."""
+        print(f"👟 Pushing Git tag {version}\n")
+        self.c.run(f"git push origin {version}")
+
     def update_changelog(self, new_version: str) -> None:
         """Update the changelog for the new version."""
         print(f"👟 Updating changelog for version {new_version}\n")
@@ -261,7 +271,7 @@ class GitFlow:
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
         self.c.run("git add docs/changelog.md")
-        self.c.run("git commit -m 'chore: update changelog for release'")
+        self.c.run("git commit -m 'docs: update changelog for release'")
         print(
             "🔥 The changelog has been updated and committed.\n"
             "Please review and commit them with: git commit --amend --no-edit"
@@ -276,6 +286,11 @@ class GitFlow:
         self.c.run(f"git merge --squash -X theirs {release_branch} ")
         self.c.run(f"git commit -m 'merge: squash {release_branch} -> {main_branch}'")
         ci.dev_ci(self.c)
+        self.git_switch_branch(main_branch)
+        self.git_merge(head=tmp_main_branch)
+        self.git_tag(version=new_version)
+        self.git_switch_branch(dev_branch)
+        self.git_merge(head=main_branch)
 
 
 @task
