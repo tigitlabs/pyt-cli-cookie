@@ -122,14 +122,22 @@ class GitFlow:
     def git_switch_branch(self, branch_name: str) -> None:
         """Switch to the specified Git branch."""
         print(f"👟 Switching to branch {branch_name}")
-        exists = self.c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
-        if branch_name == self.get_current_branch():
-            return
-        if exists:
+        self.c.run("git fetch origin")
+        exists_locally = self.c.run(f"git branch --list {branch_name}", hide=True).stdout.strip()  # type: ignore
+        remote_branch = f"origin/{branch_name}"
+        remote_exists = self.c.run(f"git ls-remote --heads origin {branch_name}", hide=True).stdout.strip()  # type: ignore
+        if exists_locally:
             self.c.run(f"git switch {branch_name}", hide=True)
-            return
+            if remote_exists:
+                print(f"Updating {branch_name} from {remote_branch}")
+                self.c.run(f"git pull origin {branch_name}", hide=True)
         else:
-            self.c.run(f"git switch -c {branch_name}", hide=True)
+            if remote_exists:
+                print(f"Creating and tracking {branch_name} from {remote_branch}")
+                self.c.run(f"git switch --track {remote_branch}", hide=True)
+            else:
+                print(f"Creating new branch {branch_name} from current HEAD")
+                self.c.run(f"git switch -c {branch_name}", hide=True)
 
     def bump_version(self, increment: str, provider: str) -> None:
         """Bump the project version."""
@@ -183,6 +191,16 @@ class GitFlow:
         """Pull the latest changes from the remote repository."""
         print("👟 Pulling latest changes from remote\n")
         self.c.run(f"git pull origin {branch}", hide=True)
+
+    def git_tag(self, version: str) -> None:
+        """Create a Git tag for the specified version."""
+        print(f"👟 Creating Git tag {version}\n")
+        self.c.run(f"git tag {version}")
+
+    def git_tag_push(self, version: str) -> None:
+        """Push the Git tag to the remote repository."""
+        print(f"👟 Pushing Git tag {version}\n")
+        self.c.run(f"git push origin {version}")
 
     def update_changelog(self, new_version: str) -> None:
         """Update the changelog for the new version."""
@@ -261,7 +279,7 @@ class GitFlow:
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
         self.c.run("git add docs/changelog.md")
-        self.c.run("git commit -m 'chore: update changelog for release'")
+        self.c.run("git commit -m 'docs: update changelog for release'")
         print(
             "🔥 The changelog has been updated and committed.\n"
             "Please review and commit them with: git commit --amend --no-edit"
@@ -276,6 +294,11 @@ class GitFlow:
         self.c.run(f"git merge --squash -X theirs {release_branch} ")
         self.c.run(f"git commit -m 'merge: squash {release_branch} -> {main_branch}'")
         ci.dev_ci(self.c)
+        self.git_switch_branch(main_branch)
+        self.git_merge(head=tmp_main_branch)
+        self.git_tag(version=new_version)
+        self.git_switch_branch(dev_branch)
+        self.git_merge(head=main_branch)
 
 
 @task
