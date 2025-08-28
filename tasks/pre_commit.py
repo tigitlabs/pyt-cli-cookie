@@ -18,8 +18,10 @@ def spell_check_commit_msg(c: Context) -> None:
     """Run spell check on commit messages."""
     print("\n👟 Running spell check on commit messages\n")
     c.run("cz changelog --file-name tmp_changelog.md")
-    c.run("pre-commit run typos --files tmp_changelog.md")
-    c.run("pre-commit run codespell --files tmp_changelog.md")
+    c.run("git add tmp_changelog.md")
+    c.run("pre-commit run typos --all-files")
+    c.run("pre-commit run codespell --all-files")
+    c.run("git reset tmp_changelog.md")
     c.run("rm tmp_changelog.md")
 
 
