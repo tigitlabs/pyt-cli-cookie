@@ -14,8 +14,12 @@ repos:
         args: ["--unsafe"]
       - id: check-toml
       - id: check-json
+      - id: check-yaml
       - id: mixed-line-ending
+      - id: name-tests-test
       - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
   # Codespell
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
