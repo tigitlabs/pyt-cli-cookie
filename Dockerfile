@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
-LABEL dev.containers.project=template
+ARG PROJECT_NAME=template
+LABEL dev.containers.project=${PROJECT_NAME}
 
 ENV PROJECT_NAME=pyt-cli-cookie \
     POETRY_VERSION=2.1.3 \

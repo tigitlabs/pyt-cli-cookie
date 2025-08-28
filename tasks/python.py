@@ -15,14 +15,14 @@ def pip_upgrade(c: Context) -> None:
 def ruff(c: Context) -> None:
     """Run the ruff linter."""
     print("\n👟 Running ruff\n")
-    c.run("ruff check --fix")
+    c.run("poetry run ruff check --fix")
 
 
 @task
 def mypy_python(c: Context) -> None:
     """Run the mypy type checker."""
     print("\n👟 Running mypy\n")
-    c.run("mypy ./src")
+    c.run("poetry run mypy ./src")
 
 
 @task
@@ -33,12 +33,12 @@ def test_static(c: Context) -> None:
     mypy_python(c)
 
 
-@task
+@task(pre=[ruff])
 def test_unit(c: Context) -> None:
     """Unit tests that run quickly."""
     print("\n👟 Running pytest\n")
     c.run("poetry install")  # fixes internal module not found
-    c.run("pytest tests/")
+    c.run("poetry run pytest tests/")
 
 
 @task
