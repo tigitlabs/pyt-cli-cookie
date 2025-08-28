@@ -34,11 +34,19 @@ def test_static(c: Context) -> None:
 
 
 @task(pre=[ruff])
-def test_unit(c: Context) -> None:
-    """Unit tests that run quickly."""
+def test_unit(c: Context, report: bool = False) -> None:
+    """Unit tests that run quickly.
+
+    Args:
+        c (Context): The context object.
+        report (bool): Whether to generate a html coverage report.
+    """
     print("\n👟 Running pytest\n")
     c.run("poetry install")  # fixes internal module not found
-    c.run("poetry run pytest tests/")
+    cmd = "poetry run pytest tests/"
+    if report:
+        cmd += " --cov-report=html"
+    c.run(cmd)
 
 
 @task

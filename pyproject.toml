@@ -28,6 +28,7 @@ mypy = "^1.17.1"
 pre-commit = "^4.3.0"
 mkdocstrings-python = "^1.18.0"
 commitizen = "^4.8.3"
+pytest-cov = "^6.2.1"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -35,3 +36,10 @@ enable = true
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+# TOOLS Section
+
+[tool.pytest.ini_options]
+addopts = "--cov=template --cov-report=term-missing"
+pythonpath = ["src"]
+testpaths = ["tests"]

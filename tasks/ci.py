@@ -20,6 +20,7 @@ def dev_ci(c: Context) -> None:
 @task
 def full_ci(c: Context) -> None:
     """Run all CI checks."""
+    c.run("git clean -fdx -e .devcontainer/.github_token")
     pre_commit.ci_pre_commit(c)
     docs.ci_docs(c)
     python.ci_python(c)

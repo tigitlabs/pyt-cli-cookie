@@ -43,7 +43,3 @@ def main(verbose: bool = False):
 def version() -> None:
     """Show the version of template."""
     print(f"template version {_get_version()}")
-
-
-if __name__ == "__main__":
-    app()

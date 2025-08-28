@@ -11,3 +11,4 @@ build/
 site/
 
 .devcontainer/.github_token
+.coverage
