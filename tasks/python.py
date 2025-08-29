@@ -15,14 +15,14 @@ def pip_upgrade(c: Context) -> None:
 def ruff(c: Context) -> None:
     """Run the ruff linter."""
     print("\n👟 Running ruff\n")
-    c.run("poetry run ruff check --fix")
+    c.run("poetry run ruff check --fix", pty=True)
 
 
 @task
 def mypy_python(c: Context) -> None:
     """Run the mypy type checker."""
     print("\n👟 Running mypy\n")
-    c.run("poetry run mypy ./src")
+    c.run("poetry run mypy ./src", pty=True)
 
 
 @task
@@ -46,7 +46,7 @@ def test_unit(c: Context, report: bool = False) -> None:
     cmd = "poetry run pytest tests/"
     if report:
         cmd += " --cov-report=html"
-    c.run(cmd)
+    c.run(cmd, pty=True)
 
 
 @task
