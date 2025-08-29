@@ -3,7 +3,11 @@ theme:
   name: material
 plugins:
   - search:
-  - to-pdf:
+  - pdf-export:
+      verbose: false
+      media_type: print
+      combined: true
+      enabled_if_env: ENABLE_PDF_EXPORT
   - mkdocstrings:
       handlers:
         # See: https://mkdocstrings.github.io/python/usage/

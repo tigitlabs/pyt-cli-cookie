@@ -1,6 +1,7 @@
 """Typer CLI for Template Project."""
 
 import os
+from typing import Annotated
 
 import typer
 
@@ -31,9 +32,15 @@ def _get_version() -> str:
         return ""
 
 
-@app.callback()
-def main(verbose: bool = False):
-    """Main entry point for the template CLI project."""
+def version_callback(value: bool):
+    """Print the version."""
+    if value:
+        print(f"template version {_get_version()}")
+        raise typer.Exit(0)
+
+
+def verbose_callback(verbose: bool):
+    """Callback for verbose flag."""
     if verbose:
         print("Will write verbose output")
         state["verbose"] = True
@@ -42,4 +49,35 @@ def main(verbose: bool = False):
 @app.command()
 def version() -> None:
     """Show the version of template."""
-    print(f"template version {_get_version()}")
+    version_callback(True)
+
+
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            callback=verbose_callback,
+            help="Enable verbose output.",
+            rich_help_panel="Customization and Utils",
+        ),
+    ] = False,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            callback=version_callback,
+            is_eager=True,
+            help="Print version information.",
+            rich_help_panel="Customization and Utils",
+        ),
+    ] = False,
+):
+    """Main entry point for the template CLI project."""
+    if ctx.invoked_subcommand is None:
+        print("No subcommand invoked")
+    else:
+        print(f"Subcommand invoked: {ctx.info_name}")

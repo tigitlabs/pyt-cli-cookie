@@ -39,6 +39,13 @@ def test_get_version() -> None:
     assert "template version" in result.output
 
 
+def test_version_flag() -> None:
+    """Test the --version flag."""
+    result = runner.invoke(cli.app, ["--version"])
+    assert result.exit_code == 0
+    assert "template version" in result.output
+
+
 def test_verbose_flag() -> None:
     """Test the --verbose flag."""
     result = runner.invoke(cli.app, ["--verbose", "version"])
@@ -58,6 +65,17 @@ def test_get_version_module_not_found(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
     version = cli._get_version()
     assert version == ""
+
+
+def test_ctx_context() -> None:
+    """Test if the main callback context is set correctly."""
+    result = runner.invoke(cli.app, ["version"])
+    assert result.exit_code == 0
+    assert "Subcommand invoked" in result.output
+
+    result = runner.invoke(cli.app, ["--verbose"])
+    assert result.exit_code == 0
+    assert "No subcommand invoked" in result.output
 
 
 def test_main_py_entrypoint():
