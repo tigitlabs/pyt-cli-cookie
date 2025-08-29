@@ -5,6 +5,8 @@ from typing import Annotated
 
 import typer
 
+from template.config import config_app
+
 state = {"verbose": False}
 
 app = typer.Typer(
@@ -12,6 +14,7 @@ app = typer.Typer(
     no_args_is_help=True,
     help="Template - A CLI template project",
 )
+app.add_typer(config_app)
 
 
 def _get_version() -> str:
