@@ -3,6 +3,7 @@ theme:
   name: material
 plugins:
   - search:
+  - to-pdf:
   - mkdocstrings:
       handlers:
         # See: https://mkdocstrings.github.io/python/usage/

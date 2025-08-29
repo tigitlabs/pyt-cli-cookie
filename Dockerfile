@@ -22,6 +22,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     python3-pip \
     python-is-python3 \
     pipx \
+    weasyprint \
     # Clean up
     && apt-get autoremove -y && apt-get clean -y
 

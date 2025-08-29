@@ -29,6 +29,7 @@ pre-commit = "^4.3.0"
 mkdocstrings-python = "^1.18.0"
 commitizen = "^4.8.3"
 pytest-cov = "^6.2.1"
+mkdocs-to-pdf = "^0.10.1"
 
 [tool.poetry-dynamic-versioning]
 enable = true
