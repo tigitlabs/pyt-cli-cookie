@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pydantic_yaml
 import typer
+from loguru import logger
 from platformdirs import PlatformDirs
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,13 +52,14 @@ class Config:
 
     def _load_config(self) -> ConfigModel:
         """Load the config from the file."""
+        logger.debug(f"Loading configuration from {self.config_file}")
         return pydantic_yaml.parse_yaml_file_as(ConfigModel, self.config_file)
 
     def _save_config(self) -> None:
         """Save the config to the file."""
         self.config_file.parent.mkdir(parents=True, exist_ok=True)
         self.config_file.write_text(pydantic_yaml.to_yaml_str(self.model))
-        print(f"Config saved to: {self.config_file}")
+        logger.debug(f"Config saved to: {self.config_file}")
 
 
 config = Config()
