@@ -56,3 +56,23 @@ env_list = ["py312", "py313"]
 description = "Run test under {base_python}"
 deps = ["pytest", "pytest-cov"]
 commands = [["pytest"]]
+
+[tool.ruff]
+exclude = [".git"]
+include = ["src/**/*.py", "tests/**/*.py", "tasks/**/*.py"]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "C4", "TID", "UP", "D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN001", "S101", "SLF001", "PT022", "PGH003"]
