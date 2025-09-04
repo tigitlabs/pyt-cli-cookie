@@ -20,8 +20,18 @@ def serve_docs(c: Context) -> None:
 
 @task
 def build_docs(c: Context) -> None:
-    """Build the MkDocs documentation."""
-    c.run(f"mkdocs build --clean --strict --config-file {CONFIG_FILE}")
+    """Build the MkDocs documentation with PDF export enabled."""
+    import sys
+    from pathlib import Path
+
+    pdf_file = Path("site/pdf/combined.pdf")
+    c.run(
+        f"mkdocs build --clean --strict --config-file {CONFIG_FILE}",
+        env={"ENABLE_PDF_EXPORT": "1"},
+    )
+    if not pdf_file.exists():
+        print(f"Error: PDF file {pdf_file} was not created.")
+        sys.exit(1)
 
 
 @task
