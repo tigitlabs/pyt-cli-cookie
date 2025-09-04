@@ -12,3 +12,4 @@ site/
 
 .devcontainer/.github_token
 .coverage
+.python-version

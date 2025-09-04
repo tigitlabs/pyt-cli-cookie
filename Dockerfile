@@ -5,7 +5,7 @@ LABEL dev.containers.project=${PROJECT_NAME}
 
 ENV PROJECT_NAME=pyt-cli-cookie \
     POETRY_VERSION=2.1.3 \
-    PYENV_VERSION=v2.6.7 \
+    PYENV_PACKAGE_VERSION=v2.6.7 \
     VIRTUAL_ENV_DISABLE_PROMPT=1 \
     CODENAME=jammy
 
@@ -71,7 +71,7 @@ RUN poetry run register-python-argcomplete cz > ~/.commitizen-completion.sh && \
 # Install pyenv
 ENV PYENV_ROOT="/home/vscode/.pyenv"
 ENV PATH="$PYENV_ROOT/bin:$PATH"
-RUN git clone --branch ${PYENV_VERSION} --depth 1 https://github.com/pyenv/pyenv.git ${PYENV_ROOT}
+RUN git clone --branch ${PYENV_PACKAGE_VERSION} --depth 1 https://github.com/pyenv/pyenv.git ${PYENV_ROOT}
 WORKDIR ${PYENV_ROOT}
 RUN src/configure && make -C src
 # hadolint ignore=SC2016

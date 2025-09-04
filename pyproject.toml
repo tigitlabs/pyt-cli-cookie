@@ -7,13 +7,12 @@ readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
     "invoke (>=2.2.0,<3.0.0)",
-    "nptdms (>=1.10.0,<2.0.0)",
-    "numpy (>=2.3.1,<3.0.0)",
     "typer (>=0.16.1,<0.17.0)",
     "pydantic (>=2.11.7,<3.0.0)",
     "pydantic-settings (>=2.10.1,<3.0.0)",
     "pydantic-yaml (>=1.6.0,<2.0.0)",
     "loguru (>=0.7.3,<0.8.0)",
+    "platformdirs (>=4.4.0,<5.0.0)",
 ]
 
 [project.scripts]
@@ -34,6 +33,7 @@ mkdocstrings-python = "^1.18.2"
 commitizen = "^4.8.3"
 pytest-cov = "^6.2.1"
 mkdocs-pdf-export-plugin = "^0.5.10"
+tox = "^4.30.1"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -48,3 +48,11 @@ build-backend = "poetry.core.masonry.api"
 addopts = "--cov=template --cov-report=term-missing"
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.tox]
+env_list = ["py312", "py313"]
+
+[tool.tox.env_run_base]
+description = "Run test under {base_python}"
+deps = ["pytest", "pytest-cov"]
+commands = [["pytest"]]

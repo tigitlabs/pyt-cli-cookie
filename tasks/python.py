@@ -47,6 +47,23 @@ def test_unit(c: Context, report: bool = False) -> None:
     if report:
         cmd += " --cov-report=html"
     c.run(cmd, pty=True)
+    print("\n👟 Completed pytest\n")
+
+
+@task
+def tox(c: Context) -> None:
+    """Run all tests using tox.
+
+    Args:
+        c (Context): The context object.
+    """
+    print("\n👟 Running tox\n")
+    cmd = "pyenv local 3.12.11 3.13.7"
+    c.run(cmd)
+    cmd = "poetry run tox run --skip-missing-interpreters false"
+    c.run(cmd)
+    cmd = "pyenv local system"
+    c.run(cmd)
 
 
 @task
@@ -69,12 +86,14 @@ def ci_python(c: Context) -> None:
     pip_upgrade(c)
     test_static(c)
     test_unit(c)
+    tox(c)
     build(c)
 
 
 python_ns = Collection("python")
 python_ns.add_task(ruff, name="ruff")  # type: ignore[arg-type]
 python_ns.add_task(mypy_python, name="mypy")  # type: ignore[arg-type]
+python_ns.add_task(tox, name="tox")  # type: ignore[arg-type]
 python_ns.add_task(test, name="test")  # type: ignore[arg-type]
 python_ns.add_task(test_static, name="test_static")  # type: ignore[arg-type]
 python_ns.add_task(test_unit, name="test_unit")  # type: ignore[arg-type]
