@@ -251,20 +251,7 @@ class GitFlow:
         self.git_push(dev_branch)
 
     def flow_release_start(self, increment: str):
-        """Start a new release branch.
-
-        - Creates a release branch from the development branch.
-        - Performs merge test from dev into main.
-        - Bumps the version according to the specified increment.
-        - Updates the changelog for the new release.
-        - Waits for user input to confirm the changelog.
-        - Commits the changes for the new release.
-        - Merges the release branch into the development branch.
-        - Merges development changes into the main branch using squash.
-        - Runs release CI checks on the main branch.
-        - Tags the commit on the main branch with the new version.
-        - Merges the main branch back into the development branch.
-        - Pushes the changes to the remote repository.
+        """Start a new release.
 
         Args:
             increment: The version increment for the new release branch.
@@ -280,7 +267,6 @@ class GitFlow:
         print(f"New version for release: {new_version}")
         self.assert_no_uncommitted()
         self.git_switch_branch(release_branch)
-        self.merge_test(release_branch, main_branch)
         print("\n👟 Bumping version & updating changelog\n")
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
@@ -294,12 +280,16 @@ class GitFlow:
         if input().strip().lower() != "y":
             print("❌ Release process aborted.")
             sys.exit(1)
+        ci.dev_ci(self.c)
+        self.merge_test(release_branch, dev_branch)
+        self.git_switch_branch(dev_branch)
+        self.git_merge(head=release_branch, message=f"merge: {release_branch} -> {dev_branch}")
+        self.merge_test(dev_branch, main_branch)
         self.git_switch_branch(main_branch)
         self.git_pull(main_branch)
         self.git_switch_branch(tmp_main_branch)
-        self.c.run(f"git merge --squash {release_branch}")
+        self.c.run(f"git merge --squash {dev_branch}")
         self.c.run(f"git commit -m 'merge: {release_branch} -> {main_branch}'")
-        ci.dev_ci(self.c)
         self.git_switch_branch(main_branch)
         self.git_merge(head=tmp_main_branch)
         self.git_tag(version=new_version)
