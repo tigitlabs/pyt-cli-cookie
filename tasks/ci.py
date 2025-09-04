@@ -10,6 +10,7 @@ from tasks import docker, docs, pre_commit, python
 @task
 def dev_ci(c: Context) -> None:
     """Run tests that run quickly."""
+    pre_commit.spell_check_commit_msg(c)
     pre_commit.pre_commit(c)
     docs.ci_docs(c)
     python.test_static(c)
@@ -19,6 +20,7 @@ def dev_ci(c: Context) -> None:
 @task
 def full_ci(c: Context) -> None:
     """Run all CI checks."""
+    c.run("git clean -fdx -e .devcontainer/.github_token")
     pre_commit.ci_pre_commit(c)
     docs.ci_docs(c)
     python.ci_python(c)

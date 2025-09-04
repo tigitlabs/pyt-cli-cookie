@@ -1,9 +1,11 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
-LABEL dev.containers.project=template
+ARG PROJECT_NAME=template
+LABEL dev.containers.project=${PROJECT_NAME}
 
 ENV PROJECT_NAME=pyt-cli-cookie \
     POETRY_VERSION=2.1.3 \
+    PYENV_PACKAGE_VERSION=v2.6.7 \
     VIRTUAL_ENV_DISABLE_PROMPT=1 \
     CODENAME=jammy
 
@@ -13,6 +15,20 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     bash-completion \
     software-properties-common \
     ca-certificates \
+    make \
+    build-essential \
+    libssl-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libncursesw5-dev \
+    xz-utils \
+    tk-dev \
+    libxml2-dev \
+    libxmlsec1-dev \
+    libffi-dev \
+    liblzma-dev \
     tmux \
     vim \
     curl \
@@ -21,6 +37,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     python3-pip \
     python-is-python3 \
     pipx \
+    weasyprint \
     # Clean up
     && apt-get autoremove -y && apt-get clean -y
 
@@ -50,3 +67,14 @@ RUN poetry run invoke --print-completion-script bash > ~/.invoke-completion.sh &
 # Set up commitizen tab completion
 RUN poetry run register-python-argcomplete cz > ~/.commitizen-completion.sh && \
     echo "source ~/.commitizen-completion.sh" >> ~/.bashrc
+
+# Install pyenv
+ENV PYENV_ROOT="/home/vscode/.pyenv"
+ENV PATH="$PYENV_ROOT/bin:$PATH"
+RUN git clone --branch ${PYENV_PACKAGE_VERSION} --depth 1 https://github.com/pyenv/pyenv.git ${PYENV_ROOT}
+WORKDIR ${PYENV_ROOT}
+RUN src/configure && make -C src
+# hadolint ignore=SC2016
+RUN echo 'eval "$(pyenv init - bash)"' >> ~/.bashrc
+# hadolint ignore=DL3059
+RUN pyenv install 3.12.11 3.13.7

@@ -2,3 +2,15 @@ version = 1
 
 [[analyzers]]
 name = "docker"
+
+[[analyzers]]
+name = "python"
+
+dependency_file_paths = ["pyproject.toml"]
+
+[analyzers.meta]
+max_line_length = 120
+
+[[analyzers]]
+
+name = "shell"
