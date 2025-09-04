@@ -59,10 +59,21 @@ class Docker:
             raise RuntimeError(f"Failed to get version for package {package}.")
         print(f"✅ {package} version: {r.stdout.strip()}")
 
+    def shell(self) -> None:
+        """Run the container and start a shell session ."""
+        cmd = f"docker run --rm -it {self.image_name}:{self.tag} /bin/bash"
+        result = self.c.run(cmd, pty=True)
+        if result is not None:
+            print(result)
+        else:
+            print("Run command failed.")
+
     def exec_docker(self) -> None:
         """Execute a shell in the Docker container."""
         cmd = (
-            f'docker container ls --all --filter "label=dev.containers.project={self.project_name}" --format "{{.ID}}"'
+            "docker container ls --all "
+            f'--filter "label=dev.containers.project={self.project_name}" '
+            '--format "{{.ID}}"'
         )
         print(cmd)
         result = self.c.run(cmd)
@@ -158,15 +169,22 @@ def build_docker(c: Context) -> None:
 
 
 @task
-def test_docker(c: Context) -> None:
-    """Run the tests in the Docker container."""
-    Docker(c).check_package("poetry")
-
-
-@task
 def devcontainer_build(c: Context) -> None:
     """Build the development container."""
     DevContainer(c).build()
+
+
+@task(pre=[build_docker])
+def test_docker(c: Context) -> None:
+    """Run the tests in the Docker container."""
+    Docker(c).check_package("poetry")
+    Docker(c).check_package("pyenv")
+
+
+@task()
+def shell_docker(c: Context) -> None:
+    """Execute a shell in the Docker container."""
+    Docker(c).shell()
 
 
 @task
@@ -194,6 +212,7 @@ docker_ns = Collection("docker")
 docker_ns.add_task(build_docker, name="build")  # type: ignore[arg-type]
 docker_ns.add_task(inspect_image, name="inspect")  # type: ignore[arg-type]
 docker_ns.add_task(test_docker, name="test")  # type: ignore[arg-type]
+docker_ns.add_task(shell_docker, name="shell")  # type: ignore[arg-type]
 docker_ns.add_task(test_devcontainer, name="devcontainer_test")  # type: ignore[arg-type]
 docker_ns.add_task(devcontainer_build, name="devcontainer_build")  # type: ignore[arg-type]
 docker_ns.add_task(ci_docker, name="ci")  # type: ignore[arg-type]
