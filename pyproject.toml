@@ -76,3 +76,7 @@ docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ANN001", "S101", "SLF001", "PT022", "PGH003"]
+
+[tool.mypy]
+disallow_untyped_calls = true
+files = "**/*.py"
