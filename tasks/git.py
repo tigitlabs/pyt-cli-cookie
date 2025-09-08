@@ -1,5 +1,6 @@
 """Version control tasks."""
 
+import json
 import sys
 
 from invoke.collection import Collection
@@ -17,6 +18,48 @@ branch_prefix_pr = "pr/"
 
 
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
+
+
+class GithubCli:
+    """Collector class to manage GitHub CLI operations."""
+
+    def __init__(self, c: Context):
+        """Initialize the GithubCli class.
+
+        Args:
+            c: The context object.
+        """
+        self.c = c
+
+    def assert_github_cli(self) -> None:
+        """Assert that the GitHub CLI is installed and authenticated."""
+        result = self.c.run("gh auth status --active", hide=True, warn=True)
+        if result.failed:  # type: ignore
+            print("❌ Warning: GitHub CLI is not authenticated. Aborting.")
+            sys.exit(1)
+        print("✅ GitHub CLI is authenticated.")
+
+    def create_label(self, label_name: str, description: str) -> None:
+        """Create a GitHub label if it does not exist."""
+        result = self.c.run("gh label list --json name", hide=True, warn=True)
+        existing_labels = [label["name"] for label in json.loads(result.stdout)]  # type: ignore
+        if label_name in existing_labels:
+            print(f"✅ Label '{label_name}' already exists.")
+        else:
+            self.c.run(f"gh label create {label_name} --description '{description}'")
+            print(f"✅ Created label '{label_name}'.")
+
+    def create_pr(self, head_branch: str, base_branch: str, title: str, body: str) -> None:
+        """Create a pull request.
+
+        Args:
+            head_branch (str): The feature/fix branch.
+            base_branch (str): The base branch to merge into.
+            title (str): The title of the pull request.
+            body (str): The body of the pull request.
+        """
+        cmd = f"gh create pr --head {head_branch} --base {base_branch} --title '{title}' --body '{body}'"
+        print(f"👟 Creating PR: {cmd}\n")
 
 
 class GitFlow:
