@@ -1,0 +1,6 @@
+# .markdownlint.yaml
+# https://github.com/DavidAnson/markdownlint
+
+# MD013/line-length - Line length
+MD013:
+  line_length: 100

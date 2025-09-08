@@ -22,7 +22,8 @@
 				"charliermarsh.ruff",
 				"tamasfe.even-better-toml",
 				"mhutchie.git-graph",
-				"njpwerner.autodocstring"
+				"njpwerner.autodocstring",
+				"DavidAnson.vscode-markdownlint"
 			]
 		}
 	}
