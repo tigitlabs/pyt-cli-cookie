@@ -1,1 +1,1 @@
-"""Template project package."""
+"""Project package."""

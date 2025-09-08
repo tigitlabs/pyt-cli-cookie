@@ -1,4 +1,4 @@
-"""Template project main entry point."""
+"""Project main entry point."""
 
 from .cli import app
 
