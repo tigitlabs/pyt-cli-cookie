@@ -13,7 +13,7 @@ dev_branch = "dev"
 main_branch = "main"
 branch_prefix_feature = "feat/"
 branch_prefix_bugfix = "fix/"
-branch_prefix_release = "release/v"
+branch_prefix_release = "release/"
 branch_prefix_pr = "pr/"
 
 
@@ -156,7 +156,8 @@ class GitFlow:
         if BUMP_VERSION_PROVIDER == "commitizen":
             version_type = version_type.lower()
         self.assert_version_type(version_type, "poetry")
-        return self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
+        v = "v" + self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
+        return v
 
     def get_release_branch(self, version: str) -> str:
         """Get the release branch name based on the new version."""
