@@ -10,6 +10,7 @@ CONFIG_FILE = "mkdocs.yml"
 @task
 def serve_docs(c: Context) -> None:
     """Serve the MkDocs documentation for live editing."""
+    c.run("poetry install")  # This fixes module not found errors
     c.run(
         f"mkdocs serve \
         --config-file {CONFIG_FILE} \
@@ -25,6 +26,7 @@ def build_docs(c: Context) -> None:
     from pathlib import Path
 
     pdf_file = Path("site/pdf/combined.pdf")
+    c.run("poetry install")  # This fixes module not found errors
     c.run(
         f"mkdocs build --clean --strict --config-file {CONFIG_FILE}",
         env={"ENABLE_PDF_EXPORT": "1"},
