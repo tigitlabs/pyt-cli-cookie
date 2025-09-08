@@ -23,6 +23,8 @@ else
         echo "✅ gh is logged in"
         gh auth status
     fi
+    echo " Test SSH AgentForwarding for github.com"
+    ssh -T git@github.com
 fi
 
 echo "🔚postStartCommand.sh: Done"
