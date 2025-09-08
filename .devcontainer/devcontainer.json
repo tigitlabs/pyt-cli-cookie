@@ -1,7 +1,10 @@
 {
 	"name": "template-dev-container",
 	"build": {
-		"dockerfile": "../Dockerfile"
+		"dockerfile": "../Dockerfile",
+		"args": {
+			"PROJECT_NAME": "template"
+		}
 	},
 	"initializeCommand": ".devcontainer/initializeCommand.sh",
 	"postCreateCommand": ".devcontainer/postCreateCommand.sh",
