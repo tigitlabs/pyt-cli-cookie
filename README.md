@@ -4,6 +4,8 @@ Template repository for Python projects.
 When used with the devcontainer there are no steps required to setup the environment.  
 If used locally run: `source activate.sh`
 
+Changelog can be found [/docs/changelog.md](/docs/changelog.md)
+
 ## Invoke
 
 All workflow steps can be run via 'invoke'.  
