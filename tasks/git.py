@@ -9,6 +9,7 @@ from invoke.tasks import task
 
 from tasks import ci
 
+readme_file = "README.md"
 dev_branch = "dev"
 main_branch = "main"
 branch_prefix_feature = "feat/"
@@ -145,8 +146,8 @@ class GitFlow:
         """Get the current version from the pyproject.toml file."""
         return self.c.run("poetry version --short", hide=True).stdout.strip()  # type: ignore
 
-    def get_new_version(self, version_type: str) -> str:
-        """Get the new version based on the current version.
+    def get_new_pip_version(self, version_type: str) -> str:
+        """Get the new version of the package based on the current version.
 
         Args:
             version_type (str): \
@@ -156,7 +157,18 @@ class GitFlow:
         if BUMP_VERSION_PROVIDER == "commitizen":
             version_type = version_type.lower()
         self.assert_version_type(version_type, "poetry")
-        v = "v" + self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
+        return self.c.run(f"poetry version {version_type} --dry-run --short", hide=True).stdout.strip()  # type: ignore
+
+    def get_new_version(self, version_type: str) -> str:
+        """Get the new version based on the current version.
+
+        This is the version with a prefix.
+
+        Args:
+            version_type (str): \
+                The type of version to release (e.g., patch, minor, major, prepatch, preminor, premajor, prerelease).
+        """
+        v = "v" + self.get_new_pip_version(version_type)
         return v
 
     def get_release_branch(self, version: str) -> str:
@@ -183,17 +195,39 @@ class GitFlow:
                 print(f"Creating new branch {branch_name} from current HEAD")
                 self.c.run(f"git switch -c {branch_name}", hide=True)
 
+    def update_readme_version(self, new_version: str) -> None:
+        """Update the version in the README file."""
+        print(f"👟 Updating README version to {new_version}\n")
+        try:
+            import re
+
+            pattern = r'^VERSION="([^"]+)"'
+            replacement = f'VERSION="{new_version}"'
+            with open(readme_file) as file:
+                content = file.read()
+                new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
+                if new_content == content:
+                    print(f"Error: Could not find or update the 'VERSION' variable in '{readme_file}'.")
+                    sys.exit(1)
+            with open(readme_file, "w") as file:
+                file.write(new_content)
+        except FileNotFoundError:
+            print(f"Error: The file '{readme_file}' does not exist.")
+            sys.exit(1)
+
     def bump_version(self, increment: str, provider: str) -> None:
         """Bump the project version."""
         self.assert_version_type(increment, provider)
-        new_version = self.get_new_version(increment)
-        print(f"👟 Bumping version to {new_version}\n")
+        new_tag_version = self.get_new_version(increment)
+        new_pip_version = self.get_new_pip_version(increment)
+        print(f"👟 Bumping version to {new_tag_version}\n")
         if provider == "poetry":
             self.c.run(f"poetry version {increment}")
         elif provider == "commitizen":
             self.c.run(f"cz bump --files-only --increment {increment.upper()}")
         else:
             raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
+        self.update_readme_version(new_pip_version)
 
     def get_feature_branch_name(self, feature_name: str) -> str:
         """Get the feature branch name based on the feature name."""
@@ -315,6 +349,7 @@ class GitFlow:
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
         self.c.run("git add docs/changelog.md")
+        self.c.run(f"git add {readme_file}")
         self.c.run("git commit -m 'docs: update changelog for release'")
         print(
             "🔥 The changelog has been updated and committed.\n"
