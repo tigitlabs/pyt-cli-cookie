@@ -71,6 +71,5 @@ def test_main_py_entrypoint():
         capture_output=True,
         text=True,
     )
-    print(result.stdout)
     assert result.returncode == 0
     assert "Show this message and exit" in result.stdout
