@@ -29,10 +29,17 @@ class Act:
 
 
 @task
-def version(c: Context) -> None:
-    """Show the version of the Nectos act."""
+def python_ci_full(c: Context) -> None:
+    """Run the full Python CI workflow."""
     act = Act(c)
-    act.run("--version")
+    act.run_job("python-ci")
+
+
+@task
+def python_ci_py312(c: Context) -> None:
+    """Run the Python CI workflow for Python 3.12."""
+    act = Act(c)
+    act.run_job("python-ci --matrix python-version:3.12")
 
 
 @task
@@ -40,6 +47,13 @@ def on_push(c: Context) -> None:
     """Trigger the on_push GitHub Action."""
     act = Act(c)
     act.run("push")
+
+
+@task
+def version(c: Context) -> None:
+    """Show the version of the Nectos act."""
+    act = Act(c)
+    act.run("--version")
 
 
 @task
@@ -56,11 +70,13 @@ def ci(c: Context) -> None:
     This will run all jobs that are supported by act.
     """
     act = Act(c)
-    act.run_job("python-ci")
+    python_ci_full(c)
     act.run_job("pre-commit")
 
 
 act_ns = Collection("act")
+act_ns.add_task(python_ci_full, name="python-ci-full")  # type: ignore[arg-type]
+act_ns.add_task(python_ci_py312, name="python-ci-py312")  # type: ignore[arg-type]
 act_ns.add_task(version, name="version")  # type: ignore[arg-type]
 act_ns.add_task(on_push, name="on_push")  # type: ignore[arg-type]
 act_ns.add_task(show_lists, name="list")  # type: ignore[arg-type]

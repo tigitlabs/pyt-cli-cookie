@@ -80,7 +80,7 @@ jobs:
           python-version: "3.12"
 
       - name: Download package artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: package-artifacts
 
@@ -89,11 +89,13 @@ jobs:
         run: |
           python -m pip install --user pipx  --break-system-packages
           pipx_bin_path="$(python -m pipx environment --value PIPX_BIN_DIR)"
-          echo "$pipx_bin_path" >> $GITHUB_PATH
+          echo "$pipx_bin_path" >> "$GITHUB_PATH"
           whl_file="$(find . -name "*.whl" -print -quit)"
           pipx install "${whl_file}" --force
           pipx list
       - name: Run end-to-end tests
         run: |
-          pipx list
           template --help
+          template --version
+          template version
+          template config show
