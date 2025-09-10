@@ -22,7 +22,7 @@ URL="https://github.com/tigitlabs/pyt-cli-cookie/archive/refs/tags/v${VERSION}.z
 curl -L -o pyt-cli-cookie.zip ${URL} && \
 unzip -o pyt-cli-cookie.zip && \
 cd pyt-cli-cookie-${VERSION} && \
-mv $(ls -A) ../ && \
+rsync -av . ../ && \
 cd .. && \
-rm -rf pyt-cli-cookie.zip pyt-cli-cookie-${VERSION}/
+rm -rf pyt-cli-cookie.zip pyt-cli-cookie-${VERSION}
 ```
