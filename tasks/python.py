@@ -83,7 +83,6 @@ def build(c: Context) -> None:
 @task
 def ci_python(c: Context) -> None:
     """Run all Python checks during development."""
-    pip_upgrade(c)
     test_static(c)
     test_unit(c)
     tox(c)

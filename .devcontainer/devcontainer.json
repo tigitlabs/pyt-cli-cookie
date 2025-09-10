@@ -26,7 +26,8 @@
 				"tamasfe.even-better-toml",
 				"mhutchie.git-graph",
 				"njpwerner.autodocstring",
-				"DavidAnson.vscode-markdownlint"
+				"DavidAnson.vscode-markdownlint",
+				"SanjulaGanepola.github-local-actions"
 			]
 		}
 	}
