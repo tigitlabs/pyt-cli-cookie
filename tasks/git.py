@@ -122,7 +122,7 @@ class GitFlow:
         output = (getattr(result, "stdout", "") or "") + (getattr(result, "stderr", "") or "")  # type: ignore
         self.c.run("git merge --abort", hide=True, warn=True)
         self.git_switch_branch(base)
-        self.c.run(f"git branch -D {tmp_head}", hide=True, warn=True)
+        self.branch_delete(tmp_head)
         if "Automatic merge went well" in output:
             print("✅ Merge test was successful.")
         else:
@@ -269,19 +269,24 @@ class GitFlow:
         self.c.run(f"git pull origin {base}")
         self.git_switch_branch(new)
 
+    def branch_delete(self, branch_name: str) -> None:
+        """Delete the specified Git branch."""
+        print(f"👟 Deleting branch {branch_name}")
+        self.c.run(f"git branch -D {branch_name}", hide=True, warn=True)
+
     def git_pull(self, branch: str) -> None:
         """Pull the latest changes from the remote repository."""
-        print("👟 Pulling latest changes from remote\n")
+        print("👟 Pulling latest changes from remote")
         self.c.run(f"git pull origin {branch}", hide=True)
 
     def git_tag(self, version: str) -> None:
         """Create a Git tag for the specified version."""
-        print(f"👟 Creating Git tag {version}\n")
+        print(f"👟 Creating Git tag {version}")
         self.c.run(f"git tag {version}")
 
     def git_push(self, branch: str, follow_tags: bool = False) -> None:
         """Push the specified branch to the remote repository."""
-        print(f"👟 Pushing branch {branch} to remote\n")
+        print(f"👟 Pushing branch {branch} to remote")
         cmd = f"git push origin {branch}"
         if follow_tags:
             cmd += " --follow-tags"
@@ -289,12 +294,12 @@ class GitFlow:
 
     def git_tag_push(self, version: str) -> None:
         """Push the Git tag to the remote repository."""
-        print(f"👟 Pushing Git tag {version}\n")
+        print(f"👟 Pushing Git tag {version}")
         self.c.run(f"git push origin {version}")
 
     def update_changelog(self, new_version: str) -> None:
         """Update the changelog for the new version."""
-        print(f"👟 Updating changelog for version {new_version}\n")
+        print(f"👟 Updating changelog for version {new_version}")
         self.c.run(f"cz changelog {new_version}")
 
     def flow_finish(self, task_type: str, pr_title: str = "") -> None:
@@ -344,8 +349,8 @@ class GitFlow:
         If the pr_branch was merged successfully, delete the branch with -d.
         The working branch has to be deleted with -D because it is not fully merged.
         """
-        self.c.run(f"git branch -d {pr_branch}")
-        self.c.run(f"git branch -D {task_branch}")
+        self.branch_delete(pr_branch)
+        self.branch_delete(task_branch)
 
     def flow_release_start(self, increment: str):
         """Start a new release.
@@ -393,8 +398,8 @@ class GitFlow:
         self.git_tag(version=new_version)
         self.git_switch_branch(dev_branch)
         self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
-        self.c.run(f"git branch -d {tmp_main_branch}")
-        self.c.run(f"git branch -D {release_branch}")
+        self.branch_delete(release_branch)
+        self.branch_delete(tmp_main_branch)
         print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
 
     def flow_release_create_pr(self, increment: str):
@@ -460,8 +465,8 @@ class GitFlow:
         )
         # Cleanup local branches
         self.git_switch_branch(dev_branch)
-        self.c.run(f"git branch -d {tmp_main_branch}")
-        self.c.run(f"git branch -D {release_branch}")
+        self.branch_delete(tmp_main_branch)
+        self.branch_delete(release_branch)
 
     def flow_release_finish(self) -> None:
         """Finish the release process."""
