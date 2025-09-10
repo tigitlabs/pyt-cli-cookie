@@ -275,10 +275,13 @@ class GitFlow:
         print(f"👟 Creating Git tag {version}\n")
         self.c.run(f"git tag {version}")
 
-    def git_push(self, branch: str) -> None:
+    def git_push(self, branch: str, follow_tags: bool = False) -> None:
         """Push the specified branch to the remote repository."""
         print(f"👟 Pushing branch {branch} to remote\n")
-        self.c.run(f"git push origin {branch}")
+        cmd = f"git push origin {branch}"
+        if follow_tags:
+            cmd += " --follow-tags"
+        self.c.run(cmd)
 
     def git_tag_push(self, version: str) -> None:
         """Push the Git tag to the remote repository."""
@@ -376,6 +379,13 @@ class GitFlow:
         self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
         self.c.run(f"git branch -d {tmp_main_branch}")
         self.c.run(f"git branch -D {release_branch}")
+        print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
+
+    def flow_release_finish(self) -> None:
+        """Finish the release process."""
+        self.assert_no_uncommitted()
+        self.git_push(dev_branch)
+        self.git_push(main_branch, follow_tags=True)
 
 
 @task
@@ -428,6 +438,17 @@ def flow_release_start(c: Context, increment: str):
 
 
 @task
+def flow_release_finish(c: Context):
+    """Finish a release branch.
+
+    Args:
+        c: The context object.
+    """
+    git = GitFlow(c)
+    git.flow_release_finish()
+
+
+@task
 def flow_feature_finish(c: Context):
     """Finish a feature branch.
 
@@ -455,3 +476,4 @@ git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
 git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
+git_ns.add_task(flow_release_finish, name="flow_release_finish")  # type: ignore
