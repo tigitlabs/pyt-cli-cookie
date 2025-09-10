@@ -14,5 +14,12 @@
     "premajor",
     "preminor",
     "prepatch"
-  ]
+  ],
+  "files.exclude": {
+    ".coverage": true,
+    ".mypy_cache/": true,
+    ".pytest_cache/": true,
+    ".ruff_cache/": true,
+    ".tox/": true
+  }
 }
