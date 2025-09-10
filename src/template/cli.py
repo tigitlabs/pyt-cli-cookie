@@ -1,6 +1,6 @@
 """Typer CLI for Template Project."""
 
-import os
+import importlib.metadata
 import sys
 from datetime import datetime
 from typing import Annotated
@@ -26,22 +26,14 @@ def _configure_logging() -> None:
 
 
 def _get_version() -> str:
-    """Get version from pyproject.toml.
+    """Get version from package metadata.
 
     Returns:
         str: The version of the project.
     """
-    try:
-        import tomllib
-
-        pyproject_path = os.path.join(os.path.dirname(__file__), "..", "..", "pyproject.toml")
-        pyproject_path = os.path.abspath(pyproject_path)
-        logger.debug(f"Loading version from {pyproject_path}")
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-        return data["project"]["version"]
-    except ModuleNotFoundError:
-        return ""
+    version = importlib.metadata.version("pyt-template")
+    logger.debug(f"Loaded version {version} from package metadata")
+    return version
 
 
 def version_callback(value: bool):

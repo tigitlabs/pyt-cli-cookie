@@ -1,6 +1,5 @@
 """Tests for the cli module."""
 
-import builtins
 import subprocess
 import sys
 
@@ -14,6 +13,7 @@ runner = CliRunner()
 def test_get_version_helper() -> None:
     """Test the get_version function."""
     ver = cli._get_version()
+    print(f"Version: {ver}")
     assert isinstance(ver, str)
     assert "." in ver
 
@@ -51,20 +51,6 @@ def test_verbose_flag() -> None:
     result = runner.invoke(cli.app, ["--verbose", "version"])
     assert result.exit_code == 0
     assert "Will write verbose output" in result.output
-
-
-def test_get_version_module_not_found(monkeypatch):
-    """Test the get_version function when tomllib is not found."""
-    real_import = builtins.__import__
-
-    def fake_import(name, *args, **kwargs):
-        if name == "tomllib":
-            raise ModuleNotFoundError
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", fake_import)
-    version = cli._get_version()
-    assert version == ""
 
 
 def test_ctx_context() -> None:
