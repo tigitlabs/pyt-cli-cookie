@@ -1,3 +1,9 @@
+## v0.0.5 (2025-09-10)
+
+### Fix
+
+- **cli**: using metadata to retrieve version
+
 ## v0.0.4 (2025-09-10)
 
 ### Feat

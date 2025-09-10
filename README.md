@@ -17,7 +17,7 @@ To see the help for a specific task run:
 ## Setup
 
 ```bash
-VERSION="0.0.4"; \
+VERSION="0.0.5"; \
 URL="https://github.com/tigitlabs/pyt-cli-cookie/archive/refs/tags/v${VERSION}.zip"; \
 curl -L -o pyt-cli-cookie.zip ${URL} && \
 unzip -o pyt-cli-cookie.zip && \
