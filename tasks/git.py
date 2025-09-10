@@ -117,12 +117,12 @@ class GitFlow:
         self.git_switch_branch(head)
         self.c.run(f"git pull origin {head}")
         self.git_switch_branch(tmp_head)
-        print("👟 Testing merge conflicts...\n")
+        print(f"👟 Testing merge conflicts {head} -> {base}")
         result = self.c.run(f"git merge --no-commit --no-ff {base}", hide=True, warn=True)  # type: ignore
         output = (getattr(result, "stdout", "") or "") + (getattr(result, "stderr", "") or "")  # type: ignore
-        self.c.run("git merge --abort")
+        self.c.run("git merge --abort", hide=True, warn=True)
         self.git_switch_branch(base)
-        self.c.run(f"git branch -D {tmp_head}")
+        self.c.run(f"git branch -D {tmp_head}", hide=True, warn=True)
         if "Automatic merge went well" in output:
             print("✅ Merge test was successful.")
         else:
@@ -330,15 +330,16 @@ class GitFlow:
             self.git_switch_branch(dev_branch)
             self.git_merge(head=pr_branch)
             self.git_push(dev_branch)
-        self.git_push(pr_branch)
-        github = GithubCli(self.c)
-        github.assert_github_cli()
-        github.create_pr(
-            head_branch=pr_branch,
-            base_branch=dev_branch,
-            title=pr_title,
-            body="",
-        )
+        else:
+            self.git_push(pr_branch)
+            github = GithubCli(self.c)
+            github.assert_github_cli()
+            github.create_pr(
+                head_branch=pr_branch,
+                base_branch=dev_branch,
+                title=pr_title,
+                body="",
+            )
         """
         If the pr_branch was merged successfully, delete the branch with -d.
         The working branch has to be deleted with -D because it is not fully merged.
@@ -395,6 +396,72 @@ class GitFlow:
         self.c.run(f"git branch -d {tmp_main_branch}")
         self.c.run(f"git branch -D {release_branch}")
         print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
+
+    def flow_release_create_pr(self, increment: str):
+        """Start a new release.
+
+        This method does following steps:
+        - Creates a release branch from the development branch.
+        - Performs the bump version tasks according to the specified increment.
+        - Merges the release branch into a temporary main branch.
+        - Runs release CI checks on the temporary main branch.
+        - Pushes the release branch to the remote repository.
+        - Creates a pull request from the release branch into the main branch.
+        - Cleans up local branches.
+
+        Args:
+            increment: The version increment for the new release branch.
+        """
+        self.assert_version_type(increment, BUMP_VERSION_PROVIDER)
+        new_version = self.get_new_version(increment)
+        release_branch = self.get_release_branch_name(new_version)
+        tmp_main_branch = f"temp_{new_version}/{main_branch}"
+        if self.get_current_branch() != dev_branch:
+            print(f"❌ You must be on the {dev_branch} branch to start a release.")
+            sys.exit(1)
+        self.assert_no_uncommitted()
+        print(f"New version for release: {new_version}")
+
+        # Perform bump version tasks
+        self.git_pull(dev_branch)
+        self.git_switch_branch(release_branch)
+        print("👟 Bumping version & updating changelog")
+        self.bump_version(increment, BUMP_VERSION_PROVIDER)
+        self.c.run("git add pyproject.toml")
+        self.c.run("git add docs/changelog.md")
+        self.c.run(f"git add {readme_file}")
+        self.c.run("git commit -m 'docs: update changelog for release'")
+        print(
+            "🔥 The changelog has been updated and committed.\n"
+            "Please review and commit them with: git commit --amend --no-edit"
+        )
+        print("❓️ Do you want to continue the release process? (y/n)")
+        if input().strip().lower() != "y":
+            print("❌ Release process aborted.")
+            sys.exit(1)
+
+        # Merge test and run CI on main branch
+        self.git_switch_branch(main_branch)
+        self.git_pull(main_branch)
+        self.git_switch_branch(tmp_main_branch)
+        self.git_merge(head=release_branch, message=f"merge: {release_branch} -> {tmp_main_branch}")
+        ci.dev_ci(self.c)
+
+        # Create PR
+        self.git_switch_branch(release_branch)
+        self.git_push(release_branch)
+        github = GithubCli(self.c)
+        github.assert_github_cli()
+        github.create_pr(
+            head_branch=release_branch,
+            base_branch=main_branch,
+            title=f"Release {new_version}",
+            body=f"This PR merges the {release_branch} branch into the {main_branch} branch.",
+        )
+        # Cleanup local branches
+        self.git_switch_branch(dev_branch)
+        self.c.run(f"git branch -d {tmp_main_branch}")
+        self.c.run(f"git branch -D {release_branch}")
 
     def flow_release_finish(self) -> None:
         """Finish the release process."""
@@ -464,6 +531,18 @@ def flow_release_finish(c: Context):
 
 
 @task
+def flow_release_pr(c: Context, increment: str):
+    """Create a pull request for the next release.
+
+    Args:
+        c: The context object.
+        increment: The version increment for the new release branch.
+    """
+    git = GitFlow(c)
+    git.flow_release_create_pr(increment)
+
+
+@task
 def flow_feature_finish(c: Context):
     """Finish a feature branch.
 
@@ -510,3 +589,4 @@ git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
 git_ns.add_task(flow_release_finish, name="flow_release_finish")  # type: ignore
+git_ns.add_task(flow_release_pr, name="flow_release_pr")  # type: ignore
