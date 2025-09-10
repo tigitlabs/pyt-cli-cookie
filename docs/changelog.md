@@ -1,3 +1,15 @@
+## v0.0.4 (2025-09-10)
+
+### Feat
+
+- **invoke**: added git.flow-release-pr
+- **invoke**: added pr creation tasks
+- **invoke**: added git-flow-release-finish task
+
+### Fix
+
+- **README**: setup/update script handles existing files now
+
 ## v0.0.3 (2025-09-09)
 
 ### Feat
