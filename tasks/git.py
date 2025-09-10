@@ -13,8 +13,11 @@ readme_file = "README.md"
 dev_branch = "dev"
 main_branch = "main"
 branch_prefix_feature = "feat/"
+commit_prefix_feature = "feat:"
 branch_prefix_bugfix = "fix/"
+commit_prefix_bugfix = "fix:"
 branch_prefix_release = "release/"
+commit_prefix_release = "release:"
 branch_prefix_pr = "pr/"
 
 
@@ -59,8 +62,9 @@ class GithubCli:
             title (str): The title of the pull request.
             body (str): The body of the pull request.
         """
-        cmd = f"gh create pr --head {head_branch} --base {base_branch} --title '{title}' --body '{body}'"
-        print(f"👟 Creating PR: {cmd}\n")
+        cmd = f"gh pr create --head {head_branch} --base {base_branch} --title '{title}' --body '{body}'"
+        print("👟 Creating PR")
+        self.c.run(cmd)
 
 
 class GitFlow:
@@ -113,12 +117,12 @@ class GitFlow:
         self.git_switch_branch(head)
         self.c.run(f"git pull origin {head}")
         self.git_switch_branch(tmp_head)
-        print("👟 Testing merge conflicts...\n")
+        print(f"👟 Testing merge conflicts {head} -> {base}")
         result = self.c.run(f"git merge --no-commit --no-ff {base}", hide=True, warn=True)  # type: ignore
         output = (getattr(result, "stdout", "") or "") + (getattr(result, "stderr", "") or "")  # type: ignore
-        self.c.run("git merge --abort")
+        self.c.run("git merge --abort", hide=True, warn=True)
         self.git_switch_branch(base)
-        self.c.run(f"git branch -D {tmp_head}")
+        self.branch_delete(tmp_head)
         if "Automatic merge went well" in output:
             print("✅ Merge test was successful.")
         else:
@@ -265,36 +269,47 @@ class GitFlow:
         self.c.run(f"git pull origin {base}")
         self.git_switch_branch(new)
 
+    def branch_delete(self, branch_name: str) -> None:
+        """Delete the specified Git branch."""
+        print(f"👟 Deleting branch {branch_name}")
+        self.c.run(f"git branch -D {branch_name}", hide=True, warn=True)
+
     def git_pull(self, branch: str) -> None:
         """Pull the latest changes from the remote repository."""
-        print("👟 Pulling latest changes from remote\n")
+        print("👟 Pulling latest changes from remote")
         self.c.run(f"git pull origin {branch}", hide=True)
 
     def git_tag(self, version: str) -> None:
         """Create a Git tag for the specified version."""
-        print(f"👟 Creating Git tag {version}\n")
+        print(f"👟 Creating Git tag {version}")
         self.c.run(f"git tag {version}")
 
-    def git_push(self, branch: str) -> None:
+    def git_push(self, branch: str, follow_tags: bool = False) -> None:
         """Push the specified branch to the remote repository."""
-        print(f"👟 Pushing branch {branch} to remote\n")
-        self.c.run(f"git push origin {branch}")
+        print(f"👟 Pushing branch {branch} to remote")
+        cmd = f"git push origin {branch}"
+        if follow_tags:
+            cmd += " --follow-tags"
+        self.c.run(cmd)
 
     def git_tag_push(self, version: str) -> None:
         """Push the Git tag to the remote repository."""
-        print(f"👟 Pushing Git tag {version}\n")
+        print(f"👟 Pushing Git tag {version}")
         self.c.run(f"git push origin {version}")
 
     def update_changelog(self, new_version: str) -> None:
         """Update the changelog for the new version."""
-        print(f"👟 Updating changelog for version {new_version}\n")
+        print(f"👟 Updating changelog for version {new_version}")
         self.c.run(f"cz changelog {new_version}")
 
-    def flow_finish(self, task_type: str):
+    def flow_finish(self, task_type: str, pr_title: str = "") -> None:
         """Finish a feature branch.
+
+        This method handles merge checks before merging the feature branch or creating a pull request.
 
         Args:
             task_type: The type of task to finish (e.g., feature, fix).
+            pr_title: The title of the pull request.
         """
         task_branch = self.get_current_branch()
         if task_type not in ["feature", "fix"]:
@@ -309,24 +324,33 @@ class GitFlow:
                 print(f"Current branch is not a fix branch: {task_branch}")
                 sys.exit(1)
         pr_branch = self.get_pull_request_branch(task_branch)
-        message = f"merge: {task_branch} -> {pr_branch}"
         self.merge_test(task_branch, dev_branch)
         self.switch_from(dev_branch, pr_branch)
         if self.get_current_branch() != pr_branch:
             print(f"Failed to switch to pull request branch: {pr_branch}")
             sys.exit(1)
         self.git_merge(head=task_branch)
-        self.git_merge(head=task_branch, message=message)
         ci.dev_ci(self.c)
-        self.git_switch_branch(dev_branch)
-        self.git_merge(head=pr_branch)
+        if pr_title == "":
+            self.git_switch_branch(dev_branch)
+            self.git_merge(head=pr_branch)
+            self.git_push(dev_branch)
+        else:
+            self.git_push(pr_branch)
+            github = GithubCli(self.c)
+            github.assert_github_cli()
+            github.create_pr(
+                head_branch=pr_branch,
+                base_branch=dev_branch,
+                title=pr_title,
+                body="",
+            )
         """
         If the pr_branch was merged successfully, delete the branch with -d.
         The working branch has to be deleted with -D because it is not fully merged.
         """
-        self.c.run(f"git branch -d {pr_branch}")
-        self.c.run(f"git branch -D {task_branch}")
-        self.git_push(dev_branch)
+        self.branch_delete(pr_branch)
+        self.branch_delete(task_branch)
 
     def flow_release_start(self, increment: str):
         """Start a new release.
@@ -374,8 +398,81 @@ class GitFlow:
         self.git_tag(version=new_version)
         self.git_switch_branch(dev_branch)
         self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
-        self.c.run(f"git branch -d {tmp_main_branch}")
-        self.c.run(f"git branch -D {release_branch}")
+        self.branch_delete(release_branch)
+        self.branch_delete(tmp_main_branch)
+        print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
+
+    def flow_release_create_pr(self, increment: str):
+        """Start a new release.
+
+        This method does following steps:
+        - Creates a release branch from the development branch.
+        - Performs the bump version tasks according to the specified increment.
+        - Merges the release branch into a temporary main branch.
+        - Runs release CI checks on the temporary main branch.
+        - Pushes the release branch to the remote repository.
+        - Creates a pull request from the release branch into the main branch.
+        - Cleans up local branches.
+
+        Args:
+            increment: The version increment for the new release branch.
+        """
+        self.assert_version_type(increment, BUMP_VERSION_PROVIDER)
+        new_version = self.get_new_version(increment)
+        release_branch = self.get_release_branch_name(new_version)
+        tmp_main_branch = f"temp_{new_version}/{main_branch}"
+        if self.get_current_branch() != dev_branch:
+            print(f"❌ You must be on the {dev_branch} branch to start a release.")
+            sys.exit(1)
+        self.assert_no_uncommitted()
+        print(f"New version for release: {new_version}")
+
+        # Perform bump version tasks
+        self.git_pull(dev_branch)
+        self.git_switch_branch(release_branch)
+        print("👟 Bumping version & updating changelog")
+        self.bump_version(increment, BUMP_VERSION_PROVIDER)
+        self.c.run("git add pyproject.toml")
+        self.c.run("git add docs/changelog.md")
+        self.c.run(f"git add {readme_file}")
+        self.c.run("git commit -m 'docs: update changelog for release'")
+        print(
+            "🔥 The changelog has been updated and committed.\n"
+            "Please review and commit them with: git commit --amend --no-edit"
+        )
+        print("❓️ Do you want to continue the release process? (y/n)")
+        if input().strip().lower() != "y":
+            print("❌ Release process aborted.")
+            sys.exit(1)
+
+        # Merge test and run CI on main branch
+        self.git_switch_branch(main_branch)
+        self.git_pull(main_branch)
+        self.git_switch_branch(tmp_main_branch)
+        self.git_merge(head=release_branch, message=f"merge: {release_branch} -> {tmp_main_branch}")
+        ci.dev_ci(self.c)
+
+        # Create PR
+        self.git_switch_branch(release_branch)
+        self.git_push(release_branch)
+        github = GithubCli(self.c)
+        github.assert_github_cli()
+        github.create_pr(
+            head_branch=release_branch,
+            base_branch=main_branch,
+            title=f"Release {new_version}",
+            body=f"This PR merges the {release_branch} branch into the {main_branch} branch.",
+        )
+        # Cleanup local branches
+        self.git_switch_branch(dev_branch)
+        self.branch_delete(tmp_main_branch)
+        self.branch_delete(release_branch)
+
+    def flow_release_finish(self) -> None:
+        """Finish the release process."""
+        self.assert_no_uncommitted()
+        self.git_push(dev_branch)
+        self.git_push(main_branch, follow_tags=True)
 
 
 @task
@@ -428,6 +525,29 @@ def flow_release_start(c: Context, increment: str):
 
 
 @task
+def flow_release_finish(c: Context):
+    """Finish a release branch.
+
+    Args:
+        c: The context object.
+    """
+    git = GitFlow(c)
+    git.flow_release_finish()
+
+
+@task
+def flow_release_pr(c: Context, increment: str):
+    """Create a pull request for the next release.
+
+    Args:
+        c: The context object.
+        increment: The version increment for the new release branch.
+    """
+    git = GitFlow(c)
+    git.flow_release_create_pr(increment)
+
+
+@task
 def flow_feature_finish(c: Context):
     """Finish a feature branch.
 
@@ -436,6 +556,23 @@ def flow_feature_finish(c: Context):
     """
     git = GitFlow(c)
     git.flow_finish(task_type="feature")
+
+
+@task
+def flow_feature_pr(c: Context, pr_title: str):
+    """Create a pull request for the current feature branch.
+
+    Args:
+        c: The context object.
+        pr_title: The title of the pull request, without the prefix.
+    """
+    git = GitFlow(c)
+    if pr_title.startswith(commit_prefix_feature):
+        print(f"🛑 Remove the {commit_prefix_feature} prefix from the PR title.")
+        sys.exit(1)
+    pr_title = "feat: " + pr_title.strip()
+    c.run(f"cz check --message '{pr_title}'")
+    git.flow_finish(task_type="feature", pr_title=pr_title)
 
 
 @task
@@ -452,6 +589,9 @@ def flow_fix_finish(c: Context):
 git_ns = Collection("git")
 git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
 git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
+git_ns.add_task(flow_feature_pr, name="flow_feature_pr")  # type: ignore
 git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
+git_ns.add_task(flow_release_finish, name="flow_release_finish")  # type: ignore
+git_ns.add_task(flow_release_pr, name="flow_release_pr")  # type: ignore

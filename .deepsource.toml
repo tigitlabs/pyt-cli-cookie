@@ -2,15 +2,21 @@ version = 1
 
 [[analyzers]]
 name = "docker"
+enabled = true
 
 [[analyzers]]
 name = "python"
-
+enabled = true
 dependency_file_paths = ["pyproject.toml"]
 
 [analyzers.meta]
 max_line_length = 120
+type_checker = "mypy"
 
 [[analyzers]]
 
 name = "shell"
+
+[[analyzers]]
+name = "secrets"
+enabled = true
