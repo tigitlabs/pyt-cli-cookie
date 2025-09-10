@@ -13,8 +13,11 @@ readme_file = "README.md"
 dev_branch = "dev"
 main_branch = "main"
 branch_prefix_feature = "feat/"
+commit_prefix_feature = "feat:"
 branch_prefix_bugfix = "fix/"
+commit_prefix_bugfix = "fix:"
 branch_prefix_release = "release/"
+commit_prefix_release = "release:"
 branch_prefix_pr = "pr/"
 
 
@@ -59,8 +62,9 @@ class GithubCli:
             title (str): The title of the pull request.
             body (str): The body of the pull request.
         """
-        cmd = f"gh create pr --head {head_branch} --base {base_branch} --title '{title}' --body '{body}'"
-        print(f"👟 Creating PR: {cmd}\n")
+        cmd = f"gh pr create --head {head_branch} --base {base_branch} --title '{title}' --body '{body}'"
+        print("👟 Creating PR")
+        self.c.run(cmd)
 
 
 class GitFlow:
@@ -293,11 +297,14 @@ class GitFlow:
         print(f"👟 Updating changelog for version {new_version}\n")
         self.c.run(f"cz changelog {new_version}")
 
-    def flow_finish(self, task_type: str):
+    def flow_finish(self, task_type: str, pr_title: str = "") -> None:
         """Finish a feature branch.
+
+        This method handles merge checks before merging the feature branch or creating a pull request.
 
         Args:
             task_type: The type of task to finish (e.g., feature, fix).
+            pr_title: The title of the pull request.
         """
         task_branch = self.get_current_branch()
         if task_type not in ["feature", "fix"]:
@@ -312,24 +319,32 @@ class GitFlow:
                 print(f"Current branch is not a fix branch: {task_branch}")
                 sys.exit(1)
         pr_branch = self.get_pull_request_branch(task_branch)
-        message = f"merge: {task_branch} -> {pr_branch}"
         self.merge_test(task_branch, dev_branch)
         self.switch_from(dev_branch, pr_branch)
         if self.get_current_branch() != pr_branch:
             print(f"Failed to switch to pull request branch: {pr_branch}")
             sys.exit(1)
         self.git_merge(head=task_branch)
-        self.git_merge(head=task_branch, message=message)
         ci.dev_ci(self.c)
-        self.git_switch_branch(dev_branch)
-        self.git_merge(head=pr_branch)
+        if pr_title == "":
+            self.git_switch_branch(dev_branch)
+            self.git_merge(head=pr_branch)
+            self.git_push(dev_branch)
+        self.git_push(pr_branch)
+        github = GithubCli(self.c)
+        github.assert_github_cli()
+        github.create_pr(
+            head_branch=pr_branch,
+            base_branch=dev_branch,
+            title=pr_title,
+            body="",
+        )
         """
         If the pr_branch was merged successfully, delete the branch with -d.
         The working branch has to be deleted with -D because it is not fully merged.
         """
         self.c.run(f"git branch -d {pr_branch}")
         self.c.run(f"git branch -D {task_branch}")
-        self.git_push(dev_branch)
 
     def flow_release_start(self, increment: str):
         """Start a new release.
@@ -460,6 +475,23 @@ def flow_feature_finish(c: Context):
 
 
 @task
+def flow_feature_pr(c: Context, pr_title: str):
+    """Create a pull request for the current feature branch.
+
+    Args:
+        c: The context object.
+        pr_title: The title of the pull request, without the prefix.
+    """
+    git = GitFlow(c)
+    if pr_title.startswith(commit_prefix_feature):
+        print(f"🛑 Remove the {commit_prefix_feature} prefix from the PR title.")
+        sys.exit(1)
+    pr_title = "feat: " + pr_title.strip()
+    c.run(f"cz check --message '{pr_title}'")
+    git.flow_finish(task_type="feature", pr_title=pr_title)
+
+
+@task
 def flow_fix_finish(c: Context):
     """Finish a fix branch.
 
@@ -473,6 +505,7 @@ def flow_fix_finish(c: Context):
 git_ns = Collection("git")
 git_ns.add_task(flow_feature_start, name="flow_feature_start")  # type: ignore
 git_ns.add_task(flow_feature_finish, name="flow_feature_finish")  # type: ignore
+git_ns.add_task(flow_feature_pr, name="flow_feature_pr")  # type: ignore
 git_ns.add_task(flow_fix_start, name="flow_fix_start")  # type: ignore
 git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
