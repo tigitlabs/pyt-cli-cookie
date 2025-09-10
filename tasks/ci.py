@@ -4,7 +4,7 @@ from invoke.collection import Collection
 from invoke.context import Context
 from invoke.tasks import task
 
-from tasks import docker, docs, pre_commit, python
+from tasks import docker, docs, github_actions, pre_commit, python
 
 
 @task
@@ -24,6 +24,7 @@ def full_ci(c: Context) -> None:
     pre_commit.ci_pre_commit(c)
     docs.ci_docs(c)
     python.ci_python(c)
+    github_actions.ci(c)
     docker.ci_docker(c)
 
 

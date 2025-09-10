@@ -1,1 +1,4 @@
 -P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-24.04
+-e .github/workflows/act_event.json
+--artifact-server-path /tmp/.artifacts
+--matrix os:ubuntu-latest
