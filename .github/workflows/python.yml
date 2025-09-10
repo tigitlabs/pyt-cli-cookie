@@ -95,5 +95,7 @@ jobs:
           pipx list
       - name: Run end-to-end tests
         run: |
-          pipx list
           template --help
+          template --version
+          template version
+          template config show
