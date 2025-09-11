@@ -1,0 +1,15 @@
+{
+  "pull_request": {
+    "head": {
+      "ref": "release/v1.2.3"
+    },
+    "base": {
+      "ref": "main"
+    },
+    "merged": true
+  },
+  "action": "closed",
+  "repository": {
+    "default_branch": "main"
+  }
+}

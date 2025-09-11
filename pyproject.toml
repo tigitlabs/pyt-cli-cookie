@@ -1,6 +1,6 @@
 [project]
 name = "pyt-template"
-version = "0.0.5"
+version = "0.0.6"
 description = ""
 authors = [{ name = "Timur Yigit", email = "timur@tigitlabs.com" }]
 readme = "README.md"
@@ -30,10 +30,11 @@ mkdocs-material = "^9.6.19"
 mypy = "^1.17.1"
 pre-commit = "^4.3.0"
 mkdocstrings-python = "^1.18.2"
-commitizen = "^4.8.4"
+commitizen = "^4.9.1"
 pytest-cov = "^6.3.0"
 mkdocs-pdf-export-plugin = "^0.5.10"
 tox = "^4.30.2"
+cz-conventional-gitmoji = "^0.7.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -44,11 +45,13 @@ build-backend = "poetry.core.masonry.api"
 
 # TOOLS Section
 
+## pytest
 [tool.pytest.ini_options]
 addopts = "--cov=template --cov-report=term-missing"
 pythonpath = ["src"]
 testpaths = ["tests"]
 
+## tox
 [tool.tox]
 env_list = ["py312", "py313"]
 
@@ -57,6 +60,7 @@ description = "Run test under {base_python}"
 deps = ["pytest", "pytest-cov"]
 commands = [["pytest"]]
 
+## ruff
 [tool.ruff]
 exclude = [".git"]
 include = ["src/**/*.py", "tests/**/*.py", "tasks/**/*.py"]
@@ -77,6 +81,18 @@ docstring-code-format = true
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ANN001", "S101", "SLF001", "PT022", "PGH003"]
 
+## mypy
 [tool.mypy]
 disallow_untyped_calls = true
 files = "**/*.py"
+
+## commitizen
+[tool.commitizen]
+# Reference: https://commitizen-tools.github.io/commitizen/config/
+name = "cz_gitmoji"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = false
+major_version_zero = true
+changelog_file = "docs/changelog.md"
+tag_format = "v$version"

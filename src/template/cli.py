@@ -31,9 +31,9 @@ def _get_version() -> str:
     Returns:
         str: The version of the project.
     """
-    version = importlib.metadata.version("pyt-template")
-    logger.debug(f"Loaded version {version} from package metadata")
-    return version
+    v = importlib.metadata.version("pyt-template")
+    logger.debug(f"Loaded version {v} from package metadata")
+    return v
 
 
 def version_callback(value: bool):
