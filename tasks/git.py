@@ -401,7 +401,7 @@ class GitFlow:
         self.git_switch_branch(main_branch)
         self.git_pull(main_branch)
         self.c.run(f"git merge --squash {dev_branch}")
-        self.c.run(f"git commit -m '{BUMP_EMOJI}: {release_branch}'")
+        self.c.run(f"git commit -m '{BUMP_EMOJI} {new_version}'")
         self.git_tag(version=new_version)
         # Merge back into dev and cleanup
         self.git_switch_branch(dev_branch)
@@ -467,7 +467,7 @@ class GitFlow:
         github.create_pr(
             head_branch=release_branch,
             base_branch=main_branch,
-            title=f"{BUMP_EMOJI} Release {new_version}",
+            title=f"{BUMP_EMOJI} {new_version}",
             body=f"This PR merges the {release_branch} branch into the {main_branch} branch.",
         )
         # Cleanup local branches
