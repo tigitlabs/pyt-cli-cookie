@@ -1,6 +1,6 @@
 [tool.commitizen]
 # Reference: https://commitizen-tools.github.io/commitizen/config/
-name = "cz_conventional_commits"
+name = "cz_gitmoji"
 version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = false

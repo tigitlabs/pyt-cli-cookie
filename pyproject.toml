@@ -30,10 +30,11 @@ mkdocs-material = "^9.6.19"
 mypy = "^1.17.1"
 pre-commit = "^4.3.0"
 mkdocstrings-python = "^1.18.2"
-commitizen = "^4.8.4"
+commitizen = "^4.9.1"
 pytest-cov = "^6.3.0"
 mkdocs-pdf-export-plugin = "^0.5.10"
 tox = "^4.30.2"
+cz-conventional-gitmoji = "^0.7.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
