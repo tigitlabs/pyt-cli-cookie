@@ -284,12 +284,19 @@ class GitFlow:
         print(f"👟 Creating Git tag {version}")
         self.c.run(f"git tag {version}")
 
-    def git_push(self, branch: str, follow_tags: bool = False) -> None:
-        """Push the specified branch to the remote repository."""
+    def git_push(self, branch: str, tag: str = "") -> None:
+        """Push the specified branch to the remote repository.
+
+        If a tag is provided, it will be pushed as well.
+
+        Args:
+            branch: The name of the branch to push.
+            tag: The tag to push (optional).
+        """
         print(f"👟 Pushing branch {branch} to remote")
         cmd = f"git push origin {branch}"
-        if follow_tags:
-            cmd += " --follow-tags"
+        if tag != "":
+            cmd = f"git push origin {branch} --atomic {tag}"
         self.c.run(cmd)
 
     def git_tag_push(self, version: str) -> None:
@@ -471,8 +478,13 @@ class GitFlow:
     def flow_release_finish(self) -> None:
         """Finish the release process."""
         self.assert_no_uncommitted()
+        tag = "v" + self.get_current_version()
+        result = self.c.run(f"git tag --list {tag}", hide=True).stdout.strip()  # type: ignore
+        if tag not in result:
+            print(f"🛑 The tag {tag} does not exist. Are you on the correct branch?")
+            sys.exit(1)
         self.git_push(dev_branch)
-        self.git_push(main_branch, follow_tags=True)
+        self.git_push(main_branch, tag)
 
 
 @task
