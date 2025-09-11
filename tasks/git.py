@@ -21,6 +21,7 @@ commit_prefix_release = "release:"
 branch_prefix_pr = "pr/"
 
 BUMP_EMOJI = "🔖"
+MERGE_EMOJI = "🔀"
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
 
 
@@ -405,7 +406,8 @@ class GitFlow:
         self.git_tag(version=new_version)
         # Merge back into dev and cleanup
         self.git_switch_branch(dev_branch)
-        self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
+        commit_msg = f"{MERGE_EMOJI} {main_branch}/{new_version} -> {dev_branch}"
+        self.git_merge(head=main_branch, message=commit_msg)
         self.branch_delete(release_branch)
         print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
 
@@ -474,6 +476,8 @@ class GitFlow:
         self.git_switch_branch(dev_branch)
         self.branch_delete(tmp_main_branch)
         self.branch_delete(release_branch)
+        print("✅ Release PR created successfully.")
+        print("After merge, sync dev with: inv git.flow-sync-dev")
 
     def flow_release_finish(self) -> None:
         """Finish the release process."""
@@ -485,6 +489,17 @@ class GitFlow:
             sys.exit(1)
         self.git_push(dev_branch)
         self.git_push(main_branch, tag)
+
+    def flow_sync_dev(self) -> None:
+        """Sync the development branch with the main branch."""
+        self.assert_no_uncommitted()
+        self.git_switch_branch(main_branch)
+        self.git_pull(main_branch)
+        main_version = self.get_current_version()
+        self.git_switch_branch(dev_branch)
+        self.git_pull(dev_branch)
+        commit_msg = f"{MERGE_EMOJI} {main_branch}/{main_version} -> {dev_branch}"
+        self.git_merge(head=main_branch, message=commit_msg)
 
 
 @task
@@ -588,6 +603,13 @@ def flow_feature_pr(c: Context, pr_title: str):
 
 
 @task
+def flow_sync_dev(c: Context):
+    """Sync the development branch with the main branch."""
+    git = GitFlow(c)
+    git.flow_sync_dev()
+
+
+@task
 def flow_fix_finish(c: Context):
     """Finish a fix branch.
 
@@ -607,3 +629,4 @@ git_ns.add_task(flow_fix_finish, name="flow_fix_finish")  # type: ignore
 git_ns.add_task(flow_release_start, name="flow_release_start")  # type: ignore
 git_ns.add_task(flow_release_finish, name="flow_release_finish")  # type: ignore
 git_ns.add_task(flow_release_pr, name="flow_release_pr")  # type: ignore
+git_ns.add_task(flow_sync_dev, name="flow_sync_dev")  # type: ignore

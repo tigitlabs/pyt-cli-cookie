@@ -57,7 +57,7 @@ To use the template without cloning the repository you can run:
 ⚠️ This will overwrite existing files! ⚠️
 
 ```bash
-VERSION="0.0.6"; \
+VERSION="0.1.0"; \
 URL="https://github.com/tigitlabs/pyt-cli-cookie/archive/refs/tags/v${VERSION}.zip"; \
 curl -L -o pyt-cli-cookie.zip ${URL} && \
 unzip -o pyt-cli-cookie.zip && \
