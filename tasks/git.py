@@ -20,7 +20,7 @@ branch_prefix_release = "release/"
 commit_prefix_release = "release:"
 branch_prefix_pr = "pr/"
 
-
+BUMP_EMOJI = "🔖"
 BUMP_VERSION_PROVIDER = "commitizen"  # The tool used to bump versions [poetry | commitizen]
 
 
@@ -369,7 +369,6 @@ class GitFlow:
         self.assert_version_type(increment, BUMP_VERSION_PROVIDER)
         new_version = self.get_new_version(increment)
         release_branch = self.get_release_branch_name(new_version)
-        tmp_main_branch = f"temp_{new_version}/{main_branch}"
         if self.get_current_branch() != dev_branch:
             print(f"❌ You must be on the {dev_branch} branch to start a release.")
             sys.exit(1)
@@ -378,6 +377,7 @@ class GitFlow:
         self.assert_no_uncommitted()
         self.git_switch_branch(release_branch)
         print("\n👟 Bumping version & updating changelog\n")
+        # Perform bump version tasks
         self.bump_version(increment, BUMP_VERSION_PROVIDER)
         self.c.run("git add pyproject.toml")
         self.c.run("git add docs/changelog.md")
@@ -391,23 +391,22 @@ class GitFlow:
         if input().strip().lower() != "y":
             print("❌ Release process aborted.")
             sys.exit(1)
+        # Test and merge into dev
         ci.dev_ci(self.c)
         self.merge_test(release_branch, dev_branch)
         self.git_switch_branch(dev_branch)
         self.git_merge(head=release_branch, message=f"merge: {release_branch} -> {dev_branch}")
         self.merge_test(dev_branch, main_branch)
+        # Merge into main and tag
         self.git_switch_branch(main_branch)
         self.git_pull(main_branch)
-        self.git_switch_branch(tmp_main_branch)
         self.c.run(f"git merge --squash {dev_branch}")
-        self.c.run(f"git commit -m 'merge: {release_branch} -> {main_branch}'")
-        self.git_switch_branch(main_branch)
-        self.git_merge(head=tmp_main_branch)
+        self.c.run(f"git commit -m '{BUMP_EMOJI}: {release_branch}'")
         self.git_tag(version=new_version)
+        # Merge back into dev and cleanup
         self.git_switch_branch(dev_branch)
         self.git_merge(head=main_branch, message=f"merge: {main_branch}/{new_version} -> {dev_branch}")
         self.branch_delete(release_branch)
-        self.branch_delete(tmp_main_branch)
         print("✅ Release flow successful. After review, push the changes with:\ninv git.flow-release-finish")
 
     def flow_release_create_pr(self, increment: str):
@@ -468,7 +467,7 @@ class GitFlow:
         github.create_pr(
             head_branch=release_branch,
             base_branch=main_branch,
-            title=f"Release {new_version}",
+            title=f"{BUMP_EMOJI} Release {new_version}",
             body=f"This PR merges the {release_branch} branch into the {main_branch} branch.",
         )
         # Cleanup local branches
