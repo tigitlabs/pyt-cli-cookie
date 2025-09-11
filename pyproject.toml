@@ -1,6 +1,6 @@
 [project]
 name = "pyt-template"
-version = "0.0.5"
+version = "0.0.6"
 description = ""
 authors = [{ name = "Timur Yigit", email = "timur@tigitlabs.com" }]
 readme = "README.md"
