@@ -219,6 +219,11 @@ class GitFlow:
             print(f"Error: The file '{readme_file}' does not exist.")
             sys.exit(1)
 
+    def update_changelog(self, new_version: str) -> None:
+        """Update the changelog for the new version."""
+        print(f"👟 Updating changelog for version {new_version}")
+        self.c.run(f"cz changelog --unreleased-version={new_version}")
+
     def bump_version(self, increment: str, provider: str) -> None:
         """Bump the project version."""
         self.assert_version_type(increment, provider)
@@ -228,6 +233,7 @@ class GitFlow:
         if provider == "poetry":
             self.c.run(f"poetry version {increment}")
         elif provider == "commitizen":
+            self.update_changelog(new_tag_version)
             self.c.run(f"cz bump --files-only --increment {increment.upper()}")
         else:
             raise ValueError(f"Unknown BUMP_VERSION_PROVIDER: {provider}")
@@ -303,11 +309,6 @@ class GitFlow:
         """Push the Git tag to the remote repository."""
         print(f"👟 Pushing Git tag {version}")
         self.c.run(f"git push origin {version}")
-
-    def update_changelog(self, new_version: str) -> None:
-        """Update the changelog for the new version."""
-        print(f"👟 Updating changelog for version {new_version}")
-        self.c.run(f"cz changelog {new_version}")
 
     def flow_finish(self, task_type: str, pr_title: str = "") -> None:
         """Finish a feature branch.
