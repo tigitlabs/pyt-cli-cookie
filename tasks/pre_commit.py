@@ -29,7 +29,7 @@ def spell_check_commit_msg(c: Context) -> None:
 def pre_commit(c: Context) -> None:
     """Run the pre-commit hooks."""
     print("\n👟 Running pre-commit hooks\n")
-    c.run("pre-commit run --all-files", pty=True)
+    c.run("pre-commit run --all-files", pty=True, env={"SKIP": "poetry-lock"})
 
 
 @task

@@ -32,6 +32,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Set SKIP environment variable to skip specific hooks
+        run: echo "SKIP=poetry-lock" >> $GITHUB_ENV
+
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --all-files

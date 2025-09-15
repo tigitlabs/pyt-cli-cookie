@@ -3,11 +3,10 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 ARG PROJECT_NAME=template
 LABEL dev.containers.project=${PROJECT_NAME}
 
-ENV PROJECT_NAME=pyt-cli-cookie \
+ENV PROJECT_NAME=${PROJECT_NAME} \
     POETRY_VERSION=2.1.3 \
     PYENV_PACKAGE_VERSION=v2.6.7 \
-    VIRTUAL_ENV_DISABLE_PROMPT=1 \
-    CODENAME=jammy
+    VIRTUAL_ENV_DISABLE_PROMPT=1
 
 # hadolint ignore=DL3008,DL3009
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
