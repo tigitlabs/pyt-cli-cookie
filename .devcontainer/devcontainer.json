@@ -3,7 +3,7 @@
 	"build": {
 		"dockerfile": "../Dockerfile",
 		"args": {
-			"PROJECT_NAME": "template"
+			"PROJECT_NAME": "pyt-cli-cookie"
 		}
 	},
 	"initializeCommand": ".devcontainer/initializeCommand.sh",
